@@ -23,17 +23,6 @@
 - ⚡ **Offline-first (Sin conexión)**: Gracias al Service Worker (`sw.js`), una vez cargada por primera vez funciona sin conexión a internet.
 - 🔒 **Privacidad total**: Todos los datos se almacenan exclusivamente en el dispositivo mediante `localStorage`. No requiere servidores externos ni recolección de datos personales.
 
-### 🚀 Despliegue en GitHub Pages
-
-La aplicación está completamente configurada con **rutas relativas (`./`)**, lo que permite alojarla y servirla sin inconvenientes dentro de subcarpetas (como `https://<usuario>.github.io/<repositorio>/`).
-
-1. Sube este repositorio a tu cuenta de GitHub.
-2. En GitHub, ve a **Settings** > **Pages**.
-3. En **Build and deployment**:
-   - **Source**: `Deploy from a branch`.
-   - **Branch**: Selecciona `main` (o `master`), carpeta `/ (root)` y haz clic en **Save**.
-4. GitHub generará la URL pública de la aplicación (ejemplo: `https://<tu-usuario>.github.io/pulsefit/`).
-
 ### 📱 Cómo instalar la App en tu teléfono
 
 Al ser una **Progressive Web App (PWA)** servida bajo HTTPS, puedes instalarla en tu pantalla de inicio como una aplicación nativa:
@@ -49,10 +38,9 @@ Al ser una **Progressive Web App (PWA)** servida bajo HTTPS, puedes instalarla e
 2. Toca el menú de tres puntos (⋮) o el botón flotante "Instalar aplicación".
 3. Selecciona **"Agregar a la pantalla principal"** o **"Instalar aplicación"**.
 
-### 💡 Consideraciones importantes
+### 💡 Consideración importante
 
 - **Almacenamiento local**: La información que registras se guarda únicamente en el navegador del dispositivo donde la usas (`localStorage`).
-- **Actualización de la app**: Si realizas modificaciones en el código (`index.html`, etc.), incrementa la versión del caché en `sw.js` (ejemplo: cambiar `var CACHE = 'pulsefit-v2';` por `'pulsefit-v3'`) para actualizar los dispositivos.
 
 ---
 
@@ -75,17 +63,6 @@ Al ser una **Progressive Web App (PWA)** servida bajo HTTPS, puedes instalarla e
 - ⚡ **Offline-First PWA**: Powered by a Service Worker (`sw.js`), ensuring complete functionality even without an internet connection after the first load.
 - 🔒 **Total Privacy**: All data is stored locally on your device via `localStorage`. No external servers, logins, or tracking.
 
-### 🚀 Deploying to GitHub Pages
-
-The application is fully configured with **relative paths (`./`)**, making it ready to be hosted in subfolders (e.g., `https://<username>.github.io/<repository>/`).
-
-1. Push this repository to your GitHub account.
-2. In your GitHub repository, go to **Settings** > **Pages**.
-3. Under **Build and deployment**:
-   - **Source**: `Deploy from a branch`.
-   - **Branch**: Select `main` (or `master`), folder `/ (root)` and click **Save**.
-4. GitHub will publish your app at `https://<your-username>.github.io/pulsefit/`.
-
 ### 📱 Installing as a Mobile App
 
 Because PulseFit is a **Progressive Web App (PWA)** served over HTTPS, you can install it directly to your home screen:
@@ -104,19 +81,5 @@ Because PulseFit is a **Progressive Web App (PWA)** served over HTTPS, you can i
 ### 💡 Notes
 
 - **Local Storage**: Your entries are stored strictly within your browser's `localStorage`.
-- **Cache Updates**: When updating code, remember to increment the cache name in `sw.js` (e.g., change `var CACHE = 'pulsefit-v2';` to `'pulsefit-v3'`) so clients automatically refresh their offline cache.
 
 ---
-
-## 📂 Project Structure / Estructura del proyecto
-
-```text
-pulsefit/
-├── index.html             # UI, responsive styles, multi-language engine & app logic
-├── manifest.webmanifest   # PWA manifest (metadata, icons & display configuration)
-├── sw.js                  # Service Worker (offline cache management)
-├── icon-180.png           # Apple Touch Icon (180x180)
-├── icon-192.png           # Standard PWA icon (192x192)
-├── icon-512.png           # High-resolution & maskable PWA icon (512x512)
-└── README.md              # Project documentation (Bilingual ES / EN)
-```

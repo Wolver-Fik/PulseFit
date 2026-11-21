@@ -1,87 +1,43 @@
-# 🏋️‍♂️ PulseFit
+# PulseFit 🏋️‍♂️🏃‍♂️
 
-[Español](#-pulsefit---español) | [English](#-pulsefit---english)
+[![Live Demo](https://shields.io)](https://wolver-fik.github.io/PulseFit/)
+[![License: MIT](https://shields.io)](./LICENSE)
+[![PWA Ready](https://shields.io)](#)
 
----
-
-## 🇪🇸 PulseFit - Español
-
-> Aplicación web progresiva (PWA) minimalista, responsiva y **offline-first** para el registro diario de hábitos saludables: caminata/cardio, comidas y entrenamientos de fuerza/pesas con seguimiento de marcas personales.
-
-### ✨ Características
-
-- 🌍 **Soporte multi-idioma (8 idiomas)**: Selector discreto en la esquina superior derecha con soporte para **Español (ES)**, **English (EN)**, **Português (PT)**, **Français (FR)**, **Italiano (IT)**, **Deutsch (DE)**, **Русский (RU)** y **日本語 (JA)**. Detección automática del idioma del navegador en la primera visita y persistencia de preferencia en `localStorage`.
-- 🚶 **Caminata y cardio**: Registro de distancia (km), calorías activas, pasos, duración en minutos y notas del entrenamiento. Cálculo automático de rachas de días consecutivos y totales acumulados.
-- 🥗 **Registro de comidas**: Seguimiento diario de desayuno, almuerzo, merienda, cena y comidas intermedias o bebidas.
-- ⏱️ **Temporizador de descanso flotante**: Widget discreto en la esquina inferior con botones rápidos (60s, 90s, 120s), controles de pausar y reiniciar, minimizable en formato píldora, aviso sonoro suave mediante Web Audio API (sin archivos de audio externos) y vibración con Web Vibration API (`navigator.vibrate`), con soporte multi-idioma (ES, EN, PT, FR, IT, DE, RU, JA).
-- 💪 **Rutina y registro de pesas**:
-  - Rutinas sugeridas organizadas por días de la semana (*Empuje A/B*, *Tirón A/B*) con descansos activos enfocados en caminadora.
-  - Catálogo de ejercicios clasificado por equipamiento: máquina multifuncional, barra y banca, o mancuernas.
-  - Carga de series, repeticiones y peso (kg) por ejercicio.
-  - Historial de levantamientos y panel de **mejores marcas personales**.
-- 📊 **Resumen total**: Calendario interactivo semanal y métricas globales consolidadas (días entrenados, volumen total de peso levantado, km totales, etc.).
-- 🌓 **Modo oscuro automático**: Se adapta dinámicamente a la preferencia de color del sistema operativo.
-- ⚡ **Offline-first (Sin conexión)**: Gracias al Service Worker (`sw.js`), una vez cargada por primera vez funciona sin conexión a internet.
-- 🔒 **Privacidad total**: Todos los datos se almacenan exclusivamente en el dispositivo mediante `localStorage`. No requiere servidores externos ni recolección de datos personales.
-
-### 📱 Cómo instalar la App en tu teléfono
-
-Al ser una **Progressive Web App (PWA)** servida bajo HTTPS, puedes instalarla en tu pantalla de inicio como una aplicación nativa:
-
-#### 🍏 En iPhone / iPad (Safari)
-1. Abre el enlace de la aplicación en **Safari**.
-2. Presiona el botón **Compartir** (icono de cuadrado con flecha hacia arriba).
-3. Desplázate hacia abajo y selecciona **"Agregar a pantalla de inicio"**.
-4. Toca **"Agregar"** en la esquina superior derecha.
-
-#### 🤖 En Android (Chrome)
-1. Abre el enlace de la aplicación en **Google Chrome**.
-2. Toca el menú de tres puntos (⋮) o el botón flotante "Instalar aplicación".
-3. Selecciona **"Agregar a la pantalla principal"** o **"Instalar aplicación"**.
-
-### 💡 Consideración importante
-
-- **Almacenamiento local**: La información que registras se guarda únicamente en el navegador del dispositivo donde la usas (`localStorage`).
+[English](#english) | [Español](#español)
 
 ---
 
-## 🇬🇧 PulseFit - English
+## English
 
-> A minimalist, responsive, and **offline-first** Progressive Web App (PWA) designed to track daily fitness habits: walking/cardio, meals, and strength/weightlifting with personal record tracking.
+**PulseFit** is a minimalist, offline-first Progressive Web App (PWA) for tracking strength training, customizable cardio routines, and daily progression with zero ads, accounts, or servers.
 
-### ✨ Features
+### ✨ Key Features
 
-- 🌍 **Multi-language support (8 languages)**: Discreet language switcher in the top-right corner with full support for **Español (ES)**, **English (EN)**, **Português (PT)**, **Français (FR)**, **Italiano (IT)**, **Deutsch (DE)**, **Русский (RU)**, and **日本語 (JA)**. Automatically detects browser language on first visit and saves your preference in `localStorage`.
-- 🚶 **Walking & Cardio Tracking**: Log distance (km), active calories, steps, duration (minutes), and workout notes. Automatically calculates consecutive day streaks and cumulative totals.
-- 🥗 **Meal Logging**: Daily tracking for breakfast, lunch, afternoon snack, dinner, and throughout-the-day snacks or beverages.
-- ⏱️ **Floating Rest Timer**: Discreet widget in the bottom corner with quick presets (60s, 90s, 120s), pause and reset controls, minimizable pill mode, gentle synthesized chime using Web Audio API (zero external mp3 files), and mobile vibration using Web Vibration API (`navigator.vibrate`), fully translated into 8 languages (ES, EN, PT, FR, IT, DE, RU, JA).
-- 💪 **Gym Routine & Weightlifting Log**:
-  - Structured routine organized by days (*Push A/B*, *Pull A/B*) with active recovery treadmill days.
-  - Exercise catalog categorized by equipment: multifunction machine, barbell & bench, or dumbbells.
-  - Log sets, reps, and weight (kg) per exercise.
-  - History log and **personal records (PRs)** tracking table.
-- 📊 **Weekly & Total Summaries**: Interactive weekly calendar and consolidated global metrics (workout days, total volume lifted, total km, etc.).
-- 🌓 **Automatic Dark / Light Theme**: Seamlessly matches your system appearance.
-- ⚡ **Offline-First PWA**: Powered by a Service Worker (`sw.js`), ensuring complete functionality even without an internet connection after the first load.
-- 🔒 **Total Privacy**: All data is stored locally on your device via `localStorage`. No external servers, logins, or tracking.
+* **Dynamic Strength & Gym Builder:** Adapts routines to your available equipment (dumbbells, barbells, cables, machines, bodyweight, or home setup), split (*PPL*, *Upper/Lower*, *Full Body*, *Home*), and goal (*Hypertrophy*, *Strength*, *Toning*, *Metabolic*).
+* **Customizable Cardio Planner:** Tailors workouts to your available gear (treadmill, bike, elliptical, stair climber, rower, jump rope, or outdoor walking) and goal (*LISS Fat Burn*, *Endurance*, *HIIT*, *Daily Steps*).
+* **Floating Rest Timer:** Built-in countdown timer with haptic feedback (`Web Vibration API`) and synthesized audio alerts (`Web Audio API`).
+* **Progress Analytics (`Chart.js`):** Tracks maximum lifted weight (`kg`) progression, personal records, and session totals.
+* **Data Sovereignty:** 100% private `localStorage` persistence with one-click `.json` backup export and import.
+* **8 Languages:** Full UI and date/number localization in **EN, ES, PT, FR, IT, DE, RU, JA**.
+* **Offline-First & Auto-Updating:** Installable PWA with a `Network-First` Service Worker that updates silently in the background.
 
-### 📱 Installing as a Mobile App
-
-Because PulseFit is a **Progressive Web App (PWA)** served over HTTPS, you can install it directly to your home screen:
-
-#### 🍏 iOS / iPadOS (Safari)
-1. Open the app link in **Safari**.
-2. Tap the **Share** button (square with an upward arrow).
-3. Scroll down and tap **"Add to Home Screen"**.
-4. Tap **"Add"** in the top right corner.
-
-#### 🤖 Android (Chrome)
-1. Open the app link in **Google Chrome**.
-2. Tap the three-dot menu (⋮) or tap the "Install app" prompt.
-3. Select **"Add to Home screen"** or **"Install"**.
-
-### 💡 Notes
-
-- **Local Storage**: Your entries are stored strictly within your browser's `localStorage`.
+> **Tech Stack:** Vanilla JS (modular ES structure), CSS3, Chart.js, Service Worker API.
 
 ---
+
+## Español
+
+**PulseFit** es una Progressive Web App (PWA) minimalista y *offline-first* para registrar entrenamientos de fuerza, planes de cardio configurables y progreso diario sin publicidad, cuentas ni servidores.
+
+### ✨ Funciones Principales
+
+* **Configurador de Pesas y Gimnasio:** Adapta tu rutina según el material o máquinas disponibles (mancuernas, barra, poleas, prensa, máquinas, peso corporal o equipo en casa), división (*Empuje/Tirón/Piernas*, *Torso/Pierna*, *Full Body*, *Casa*) y objetivo (*Hipertrofia*, *Fuerza*, *Tonificación*, *Metabólico*).
+* **Planificador de Cardio Configurable:** Personaliza sesiones según el equipo disponible (cinta, bicicleta, elíptica, escaladora, remo, cuerda o caminata) y objetivo (*Quema de grasa LISS*, *Resistencia*, *HIIT*, *Pasos diarios*).
+* **Temporizador de Descanso Flotante:** Cronómetro regresivo con vibración háptica (`Web Vibration API`) y alerta sonora sintetizada (`Web Audio API`).
+* **Gráficos de Evolución (`Chart.js`):** Visualiza la progresión de peso máximo (`kg`) por ejercicio, récords personales y totales acumulados.
+* **Respaldo de Datos (JSON):** Almacenamiento 100% local en `localStorage` con exportación e importación en un clic (`.json`).
+* **8 Idiomas:** Interfaz y formatos regionales en **ES, EN, PT, FR, IT, DE, RU, JA**.
+* **Offline-First y Autoactualizable:** PWA instalable con Service Worker *Network-First* que se actualiza automáticamente en segundo plano.
+
+> **Tecnologías:** JavaScript Vanilla (arquitectura modular), CSS3, Chart.js, Service Worker API.

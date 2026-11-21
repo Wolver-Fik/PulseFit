@@ -13,6 +13,7 @@
 <link rel="apple-touch-icon" href="./icon-180.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 /* Layout: una columna angosta con tres pestañas (Caminata, Pesas, Total). */
 :root{
@@ -34,7 +35,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;
-  padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(48px + env(safe-area-inset-bottom,0px));
+  padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(80px + env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 main{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
 .top-bar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
@@ -111,6 +112,190 @@ details li{margin:4px 0}
 .lift{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .lift .what{min-width:0}
 .lift .what small{color:var(--muted)}
+
+/* Temporizador de descanso flotante */
+.rest-timer{
+  position:fixed;
+  bottom:calc(16px + env(safe-area-inset-bottom, 0px));
+  right:calc(16px + env(safe-area-inset-right, 0px));
+  z-index:999;
+  font-family:var(--body);
+}
+.timer-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:var(--surface);
+  color:var(--fg);
+  border:1px solid var(--line);
+  box-shadow:0 4px 16px rgba(0,0,0,0.12);
+  border-radius:99px;
+  padding:7px 14px;
+  cursor:pointer;
+  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.timer-pill:hover{border-color:var(--accent);transform:translateY(-1px)}
+.timer-card{
+  background:var(--surface);
+  color:var(--fg);
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:0 6px 22px rgba(0,0,0,0.14);
+  padding:12px 14px;
+  width:210px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  transition:box-shadow .2s ease, border-color .2s ease;
+}
+.timer-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.timer-title{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  font-weight:700;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.timer-icon{
+  color:var(--accent);
+  flex-shrink:0;
+}
+.timer-min-btn{
+  border:0;
+  background:none;
+  color:var(--muted);
+  cursor:pointer;
+  padding:2px 4px;
+  border-radius:4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+}
+.timer-min-btn:hover{color:var(--fg);background:var(--soft)}
+.timer-body{
+  text-align:center;
+  padding:2px 0;
+}
+.timer-digits{
+  font-family:var(--head);
+  font-size:30px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;
+  color:var(--fg);
+}
+.timer-pill .timer-digits{
+  font-size:14px;
+  font-weight:600;
+}
+.timer-status{
+  font-size:12px;
+  font-weight:600;
+  color:var(--accent);
+  margin-top:4px;
+  animation:timerPulse 1s ease-in-out infinite alternate;
+}
+.timer-presets{
+  display:flex;
+  gap:6px;
+}
+.timer-preset-btn{
+  flex:1;
+  border:1px solid var(--line);
+  background:var(--bg);
+  color:var(--fg);
+  border-radius:6px;
+  padding:5px 0;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .15s ease;
+  font-variant-numeric:tabular-nums;
+}
+.timer-preset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.timer-preset-btn.active{
+  background:var(--soft);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+.timer-actions{
+  display:flex;
+  gap:6px;
+}
+.timer-act-btn{
+  flex:1;
+  border-radius:6px;
+  padding:6px 0;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  text-align:center;
+  transition:all .15s ease;
+}
+.timer-btn-primary{
+  background:var(--accent);
+  color:var(--accent-fg);
+  border:1px solid var(--accent);
+}
+.timer-btn-primary:hover{opacity:.92}
+.timer-btn-subtle{
+  background:var(--bg);
+  color:var(--fg);
+  border:1px solid var(--line);
+}
+.timer-btn-subtle:hover{border-color:var(--muted)}
+.rest-timer.ringing .timer-card,
+.rest-timer.ringing .timer-pill{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--soft), 0 8px 24px rgba(0,0,0,0.22);
+  animation:timerPulse 1s ease-in-out infinite alternate;
+}
+@keyframes timerPulse{
+  0%{transform:scale(1)}
+  100%{transform:scale(1.02)}
+}
+@media (prefers-reduced-motion: reduce){
+  .timer-status, .rest-timer.ringing .timer-card, .rest-timer.ringing .timer-pill{
+    animation:none;
+  }
+}
+
+/* Evolución de cargas (Chart.js) */
+.chart-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.chart-select-wrap{min-width:180px;flex:1;max-width:320px}
+.chart-select{
+  width:100%;padding:8px 10px;font-size:13px;font-weight:500;border-radius:8px;
+  border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;
+  outline:none;transition:border-color .15s;
+}
+.chart-select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chart-container{
+  margin-top:12px;background:#0C1513;border:1px solid #273532;border-radius:10px;
+  padding:14px;display:flex;flex-direction:column;gap:12px;
+}
+.chart-meta{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+  font-size:13px;color:#93A5A0;
+}
+.chart-meta-stat{display:inline-flex;align-items:baseline;gap:6px}
+.chart-meta-val{font-family:var(--head);font-size:18px;font-weight:700;color:#3CC4A8;font-variant-numeric:tabular-nums}
+.chart-canvas-wrap{position:relative;width:100%;height:260px;min-height:200px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.btn-subtle{
+  font-size:13px;font-weight:500;padding:7px 12px;border-radius:8px;
+  border:1px solid var(--line);background:var(--surface);color:var(--muted);
+  cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-subtle:hover{color:var(--fg);border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -234,7 +419,73 @@ details li{margin:4px 0}
       <h2 id="h-gtot" data-i18n="hLiftTotals">Pesas en total</h2>
       <div class="stats" id="gstats"></div>
     </section>
+
+    <section class="panel" aria-labelledby="h-loads">
+      <div class="chart-header">
+        <h2 id="h-loads" data-i18n="hLoadEvolution">Evolución de cargas</h2>
+        <div class="chart-select-wrap">
+          <label for="chartExSelect" class="sr-only" data-i18n="labelSelectExercise">Seleccionar ejercicio</label>
+          <select id="chartExSelect" class="chart-select" aria-label="Seleccionar ejercicio" data-i18n-aria="labelSelectExercise"></select>
+        </div>
+      </div>
+      <p class="empty" id="chartEmpty" data-i18n="emptyChart" hidden>Todavía no registraste ejercicios con peso para graficar.</p>
+      <div id="chartContainer" class="chart-container">
+        <div class="chart-meta" id="chartMeta"></div>
+        <div class="chart-canvas-wrap">
+          <canvas id="loadChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-backup">
+      <h2 id="h-backup" data-i18n="hBackup">Copia de seguridad</h2>
+      <p class="sub" data-i18n="backupDesc" style="font-size:13px;margin:2px 0 12px;color:var(--muted)">Guardá una copia de tus registros o restauralos en otro dispositivo.</p>
+      <div class="actions" style="margin-top:0">
+        <button type="button" id="btnExportBackup" class="btn-subtle" data-i18n="btnExportBackup">Exportar respaldo (.json)</button>
+        <button type="button" id="btnImportBackup" class="btn-subtle" data-i18n="btnImportBackup">Importar respaldo</button>
+        <input type="file" id="importInput" accept=".json,application/json" hidden>
+        <span class="msg" id="backupMsg" role="status"></span>
+      </div>
+    </section>
   </div>
+
+  <!-- Temporizador de descanso flotante -->
+  <aside id="restTimer" class="rest-timer" aria-label="Temporizador de descanso" data-i18n-aria="timerRest">
+    <!-- Vista minimizada -->
+    <button type="button" id="timerPill" class="timer-pill" aria-label="Expandir temporizador" data-i18n-aria="timerExp" hidden>
+      <svg class="timer-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/><path d="M12 2v3"/></svg>
+      <span id="timerPillTime" class="timer-digits">01:00</span>
+    </button>
+
+    <!-- Vista expandida / tarjeta -->
+    <div id="timerCard" class="timer-card">
+      <div class="timer-header">
+        <div class="timer-title">
+          <svg class="timer-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/><path d="M12 2v3"/></svg>
+          <span data-i18n="timerRest">Descanso</span>
+        </div>
+        <button type="button" id="timerToggleBtn" class="timer-min-btn" aria-label="Minimizar temporizador" data-i18n-aria="timerMin" data-i18n-title="timerMin" title="Minimizar">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+
+      <div class="timer-body">
+        <div id="timerDigits" class="timer-digits" role="timer" aria-live="polite">01:00</div>
+        <div id="timerStatus" class="timer-status" hidden></div>
+      </div>
+
+      <div class="timer-presets" role="group" aria-label="Tiempos predeterminados">
+        <button type="button" class="timer-preset-btn active" data-sec="60" data-i18n-aria="timer60s">60s</button>
+        <button type="button" class="timer-preset-btn" data-sec="90" data-i18n-aria="timer90s">90s</button>
+        <button type="button" class="timer-preset-btn" data-sec="120" data-i18n-aria="timer120s">120s</button>
+      </div>
+
+      <div class="timer-actions">
+        <button type="button" id="timerPlayBtn" class="timer-act-btn timer-btn-primary" data-i18n="timerStart">Iniciar</button>
+        <button type="button" id="timerResetBtn" class="timer-act-btn timer-btn-subtle" data-i18n="timerReset">Reiniciar</button>
+      </div>
+    </div>
+  </aside>
 </main>
 
 <script>
@@ -346,7 +597,32 @@ details li{margin:4px 0}
         2: { name: 'Empuje B', sub: 'Pecho, hombros y tríceps' },
         4: { name: 'Tirón B', sub: 'Espalda y bíceps, con remo con barra' }
       },
-      repUnits: { perSide: 'por lado' }
+      repUnits: { perSide: 'por lado' },
+      hLoadEvolution: 'Evolución de cargas',
+      labelSelectExercise: 'Seleccionar ejercicio',
+      chartWeightLabel: 'Peso máximo (kg)',
+      emptyChart: 'Todavía no registraste ejercicios con peso para graficar.',
+      emptyChartNoEx: 'Sin ejercicios registrados',
+      chartRecord: 'Récord',
+      chartSessions: 'Sesiones',
+      hBackup: 'Copia de seguridad',
+      backupDesc: 'Guardá una copia de tus registros o restauralos en otro dispositivo.',
+      btnExportBackup: 'Exportar respaldo (.json)',
+      btnImportBackup: 'Importar respaldo',
+      backupExportSuccess: 'Respaldo descargado.',
+      backupImportSuccess: 'Datos restaurados correctamente.',
+      backupImportError: 'Archivo de respaldo inválido.',
+      timerRest: 'Descanso',
+      timerPause: 'Pausar',
+      timerResume: 'Reanudar',
+      timerStart: 'Iniciar',
+      timerReset: 'Reiniciar',
+      timerDone: '¡Tiempo!',
+      timerMin: 'Minimizar',
+      timerExp: 'Expandir',
+      timer60s: '60 segundos',
+      timer90s: '90 segundos',
+      timer120s: '120 segundos'
     },
     en: {
       appSub: 'Your personal tracker for walking, nutrition, and lifting.',
@@ -450,7 +726,32 @@ details li{margin:4px 0}
         2: { name: 'Push B', sub: 'Chest, shoulders & triceps' },
         4: { name: 'Pull B', sub: 'Back & biceps, with barbell row' }
       },
-      repUnits: { perSide: 'per side' }
+      repUnits: { perSide: 'per side' },
+      hLoadEvolution: 'Load progression',
+      labelSelectExercise: 'Select exercise',
+      chartWeightLabel: 'Max weight (kg)',
+      emptyChart: 'No weighted exercises logged yet to graph.',
+      emptyChartNoEx: 'No exercises logged',
+      chartRecord: 'Personal best',
+      chartSessions: 'Sessions',
+      hBackup: 'Backup & data',
+      backupDesc: 'Save a copy of your logs or restore them on another device.',
+      btnExportBackup: 'Export backup (.json)',
+      btnImportBackup: 'Import backup',
+      backupExportSuccess: 'Backup downloaded.',
+      backupImportSuccess: 'Data restored successfully.',
+      backupImportError: 'Invalid backup file.',
+      timerRest: 'Rest',
+      timerPause: 'Pause',
+      timerResume: 'Resume',
+      timerStart: 'Start',
+      timerReset: 'Reset',
+      timerDone: 'Time!',
+      timerMin: 'Minimize',
+      timerExp: 'Expand',
+      timer60s: '60 seconds',
+      timer90s: '90 seconds',
+      timer120s: '120 seconds'
     },
     pt: {
       appSub: 'Seu acompanhamento de caminhada, alimentação e musculação.',
@@ -554,7 +855,32 @@ details li{margin:4px 0}
         2: { name: 'Empurrar B', sub: 'Peito, ombros e tríceps' },
         4: { name: 'Puxar B', sub: 'Costas e bíceps, com remada com barra' }
       },
-      repUnits: { perSide: 'por lado' }
+      repUnits: { perSide: 'por lado' },
+      hLoadEvolution: 'Evolução de cargas',
+      labelSelectExercise: 'Selecionar exercício',
+      chartWeightLabel: 'Peso máximo (kg)',
+      emptyChart: 'Você ainda não registrou exercícios com peso para o gráfico.',
+      emptyChartNoEx: 'Sem exercícios registrados',
+      chartRecord: 'Recorde',
+      chartSessions: 'Sessões',
+      hBackup: 'Cópia de segurança',
+      backupDesc: 'Salve uma cópia dos seus registros ou restaure-os em outro dispositivo.',
+      btnExportBackup: 'Exportar backup (.json)',
+      btnImportBackup: 'Importar backup',
+      backupExportSuccess: 'Backup descarregado.',
+      backupImportSuccess: 'Dados restaurados com sucesso.',
+      backupImportError: 'Arquivo de backup inválido.',
+      timerRest: 'Descanso',
+      timerPause: 'Pausar',
+      timerResume: 'Retomar',
+      timerStart: 'Iniciar',
+      timerReset: 'Reiniciar',
+      timerDone: 'Tempo!',
+      timerMin: 'Minimizar',
+      timerExp: 'Expandir',
+      timer60s: '60 segundos',
+      timer90s: '90 segundos',
+      timer120s: '120 segundos'
     },
     fr: {
       appSub: 'Votre suivi personnel de marche, repas et musculation.',
@@ -658,7 +984,32 @@ details li{margin:4px 0}
         2: { name: 'Poussée B', sub: 'Poitrine, épaules et triceps' },
         4: { name: 'Tirage B', sub: 'Dos et biceps, avec rowing barre' }
       },
-      repUnits: { perSide: 'par côté' }
+      repUnits: { perSide: 'par côté' },
+      hLoadEvolution: 'Évolution des charges',
+      labelSelectExercise: 'Sélectionner un exercice',
+      chartWeightLabel: 'Poids maximal (kg)',
+      emptyChart: "Vous n'avez pas encore enregistré d'exercices avec poids pour le graphique.",
+      emptyChartNoEx: 'Aucun exercice enregistré',
+      chartRecord: 'Record',
+      chartSessions: 'Séances',
+      hBackup: 'Sauvegarde et données',
+      backupDesc: 'Enregistrez une copie de vos données ou restaurez-les sur un autre appareil.',
+      btnExportBackup: 'Exporter sauvegarde (.json)',
+      btnImportBackup: 'Importer sauvegarde',
+      backupExportSuccess: 'Sauvegarde téléchargée.',
+      backupImportSuccess: 'Données restaurées avec succès.',
+      backupImportError: 'Fichier de sauvegarde invalide.',
+      timerRest: 'Repos',
+      timerPause: 'Pause',
+      timerResume: 'Reprendre',
+      timerStart: 'Démarrer',
+      timerReset: 'Réinitialiser',
+      timerDone: 'Temps !',
+      timerMin: 'Réduire',
+      timerExp: 'Agrandir',
+      timer60s: '60 secondes',
+      timer90s: '90 secondes',
+      timer120s: '120 secondes'
     },
     it: {
       appSub: 'Il tuo monitoraggio di camminata, alimentazione e pesi.',
@@ -762,7 +1113,32 @@ details li{margin:4px 0}
         2: { name: 'Spinta B', sub: 'Petto, spalle e tricipiti' },
         4: { name: 'Trazione B', sub: 'Schiena e bicipiti, con rematore con bilanciere' }
       },
-      repUnits: { perSide: 'per lato' }
+      repUnits: { perSide: 'per lato' },
+      hLoadEvolution: 'Evoluzione dei carichi',
+      labelSelectExercise: 'Seleziona esercizio',
+      chartWeightLabel: 'Peso massimo (kg)',
+      emptyChart: 'Non hai ancora registrato esercizi con pesi da mostrare nel grafico.',
+      emptyChartNoEx: 'Nessun esercizio registrato',
+      chartRecord: 'Record',
+      chartSessions: 'Sessioni',
+      hBackup: 'Backup e dati',
+      backupDesc: 'Salva una copia dei tuoi dati o ripristinali su un altro dispositivo.',
+      btnExportBackup: 'Esporta backup (.json)',
+      btnImportBackup: 'Importa backup',
+      backupExportSuccess: 'Backup scaricato.',
+      backupImportSuccess: 'Dati ripristinati con successo.',
+      backupImportError: 'File di backup non valido.',
+      timerRest: 'Riposo',
+      timerPause: 'Pausa',
+      timerResume: 'Riprendi',
+      timerStart: 'Avvia',
+      timerReset: 'Reimposta',
+      timerDone: 'Tempo!',
+      timerMin: 'Riduci',
+      timerExp: 'Espandi',
+      timer60s: '60 secondi',
+      timer90s: '90 secondi',
+      timer120s: '120 secondi'
     }
   };
 
@@ -808,6 +1184,22 @@ details li{margin:4px 0}
     var item = EX_NAME_MAP[key];
     if(item) return item[lang] || item.es;
     return key;
+  }
+
+  var NORM_EX_MAP = {};
+  Object.keys(CATALOG).forEach(function(cat){
+    CATALOG[cat].forEach(function(item){
+      NORM_EX_MAP[item.key.toLowerCase()] = item.key;
+      SUPPORTED_LANGS.forEach(function(lang){
+        if(item[lang]) NORM_EX_MAP[item[lang].trim().toLowerCase()] = item.key;
+      });
+    });
+  });
+
+  function getCanonicalExerciseKey(rawName){
+    if(!rawName) return '';
+    var lower = String(rawName).trim().toLowerCase();
+    return NORM_EX_MAP[lower] || lower;
   }
 
   var ROUTINE_DEF = {
@@ -929,6 +1321,20 @@ details li{margin:4px 0}
     if(Array.isArray(prog) && $('progList')){
       $('progList').innerHTML = prog.map(function(item){ return '<li>'+esc(item)+'</li>'; }).join('');
     }
+
+    document.querySelectorAll('[data-i18n-title]').forEach(function(el){
+      var k = el.getAttribute('data-i18n-title');
+      var val = t(k);
+      if(val) el.title = val;
+    });
+
+    document.querySelectorAll('[data-i18n-aria]').forEach(function(el){
+      var k = el.getAttribute('data-i18n-aria');
+      var val = t(k);
+      if(val) el.setAttribute('aria-label', val);
+    });
+
+    if(typeof updateTimerLabels === 'function') updateTimerLabels();
 
     fillExList();
     render();
@@ -1121,7 +1527,499 @@ details li{margin:4px 0}
     else { gArmed=id; tgt.textContent=t('btnSure'); clearTimeout(gTimer); gTimer=setTimeout(function(){ gArmed=null; renderLifts(); },3000); }
   });
 
-  function render(){ renderDays(); renderRoutine(); renderLifts(); renderGymTotals(); }
+  /* ---------- evolucion de cargas (Chart.js) ---------- */
+  var chartInstance = null;
+  var selectedChartEx = null;
+
+  function updateChartExerciseSelect(distinctKeys, customDisplayMap){
+    var sel = $('chartExSelect');
+    if(!sel) return;
+    if(!distinctKeys.length){
+      sel.innerHTML = '<option value="">' + esc(t('emptyChartNoEx')) + '</option>';
+      sel.disabled = true;
+      selectedChartEx = null;
+      return;
+    }
+    sel.disabled = false;
+    var items = distinctKeys.map(function(k){
+      var name = EX_NAME_MAP[k] ? (EX_NAME_MAP[k][curLang] || EX_NAME_MAP[k].es) : (customDisplayMap[k] || k);
+      return { key: k, name: name };
+    });
+    items.sort(function(a,b){ return a.name.localeCompare(b.name, LOCALE[curLang] || 'es'); });
+
+    var found = items.some(function(it){ return it.key === selectedChartEx; });
+    if(!found){
+      selectedChartEx = items[0].key;
+    }
+    sel.innerHTML = items.map(function(it){
+      var isSel = it.key === selectedChartEx ? ' selected' : '';
+      return '<option value="' + esc(it.key) + '"' + isSel + '>' + esc(it.name) + '</option>';
+    }).join('');
+  }
+
+  function renderProgressionChart(){
+    var emptyEl = $('chartEmpty'), containerEl = $('chartContainer'), metaEl = $('chartMeta');
+    if(!emptyEl || !containerEl || !metaEl) return;
+
+    var distinctKeys = [], keySet = {}, customDisplayMap = {}, liftsByEx = {};
+    Object.keys(lifts).forEach(function(id){
+      var v = lifts[id];
+      if(!v || !v.ejercicio) return;
+      var canKey = getCanonicalExerciseKey(v.ejercicio);
+      if(!keySet[canKey]){
+        keySet[canKey] = true;
+        distinctKeys.push(canKey);
+        customDisplayMap[canKey] = String(v.ejercicio).trim();
+      }
+      if(!liftsByEx[canKey]) liftsByEx[canKey] = [];
+      liftsByEx[canKey].push(v);
+    });
+
+    updateChartExerciseSelect(distinctKeys, customDisplayMap);
+
+    if(!distinctKeys.length || !selectedChartEx || !liftsByEx[selectedChartEx]){
+      emptyEl.hidden = false;
+      containerEl.hidden = true;
+      if(chartInstance){ chartInstance.destroy(); chartInstance = null; }
+      return;
+    }
+
+    emptyEl.hidden = true;
+    containerEl.hidden = false;
+
+    var exLifts = liftsByEx[selectedChartEx];
+    var maxWeightByDate = {};
+    exLifts.forEach(function(lift){
+      var d = lift.date;
+      var w = num(lift.kg);
+      if(maxWeightByDate[d] == null || w > maxWeightByDate[d]){
+        maxWeightByDate[d] = w;
+      }
+    });
+
+    var sortedDates = Object.keys(maxWeightByDate).sort();
+    var labels = sortedDates.map(function(d){ return fmtDate(d); });
+    var dataPoints = sortedDates.map(function(d){ return maxWeightByDate[d]; });
+    var topWeight = dataPoints.reduce(function(a,b){ return Math.max(a,b); }, 0);
+    var sessionsCount = sortedDates.length;
+
+    metaEl.innerHTML =
+      '<div class="chart-meta-stat"><span>' + esc(t('chartRecord')) + ':</span> <span class="chart-meta-val">' + fmt(topWeight, 1) + ' kg</span></div>' +
+      '<div class="chart-meta-stat"><span>' + esc(t('chartSessions')) + ':</span> <span class="chart-meta-val">' + fmt(sessionsCount, 0) + '</span></div>';
+
+    if(typeof Chart === 'undefined') return;
+
+    var canvas = $('loadChart');
+    if(!canvas) return;
+    var ctx = canvas.getContext('2d');
+
+    if(chartInstance){
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: t('chartWeightLabel'),
+          data: dataPoints,
+          borderColor: '#3CC4A8',
+          backgroundColor: 'rgba(60, 196, 168, 0.14)',
+          borderWidth: 2.5,
+          tension: 0.25,
+          fill: true,
+          pointBackgroundColor: '#3CC4A8',
+          pointBorderColor: '#0C1513',
+          pointBorderWidth: 2,
+          pointRadius: dataPoints.length === 1 ? 6 : 4,
+          pointHoverRadius: 7,
+          pointHoverBackgroundColor: '#5EE2C8',
+          pointHoverBorderColor: '#0C1513',
+          pointHoverBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: '#16211F',
+            titleColor: '#E6EFEC',
+            bodyColor: '#3CC4A8',
+            borderColor: '#273532',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: false,
+            callbacks: {
+              title: function(items){
+                if(!items.length) return '';
+                var idx = items[0].dataIndex;
+                return sortedDates[idx] ? fmtDate(sortedDates[idx]) : items[0].label;
+              },
+              label: function(context){
+                return (t('chartWeightLabel') || 'Peso') + ': ' + fmt(context.parsed.y, 1) + ' kg';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.05)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#93A5A0',
+              font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+              maxRotation: 45
+            }
+          },
+          y: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.07)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#93A5A0',
+              font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+              callback: function(val){ return val + ' kg'; }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  if($('chartExSelect')){
+    $('chartExSelect').addEventListener('change', function(e){
+      selectedChartEx = e.target.value;
+      renderProgressionChart();
+    });
+  }
+
+  function render(){ renderDays(); renderRoutine(); renderLifts(); renderGymTotals(); renderProgressionChart(); }
+
+  /* ---------- respaldo (exportar / importar) ---------- */
+  function exportBackup(){
+    try {
+      var dump = {};
+      for(var i=0; i<localStorage.length; i++){
+        var k = localStorage.key(i);
+        try {
+          dump[k] = JSON.parse(localStorage.getItem(k));
+        } catch(e) {
+          dump[k] = localStorage.getItem(k);
+        }
+      }
+      var backupData = {
+        app: 'PulseFit',
+        version: 1,
+        exportDate: iso(today()),
+        exportedAt: new Date().toISOString(),
+        days: days,
+        lifts: lifts,
+        pulsefit_lang: curLang,
+        localStorage: dump
+      };
+      var jsonStr = JSON.stringify(backupData, null, 2);
+      var blob = new Blob([jsonStr], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'pulsefit-backup-' + iso(today()) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      say('backupMsg', t('backupExportSuccess'));
+    } catch(err){
+      say('backupMsg', 'Error', true);
+    }
+  }
+
+  function handleImportFile(file){
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(evt){
+      try {
+        var raw = evt.target.result;
+        var parsed = JSON.parse(raw);
+        if(!parsed || typeof parsed !== 'object') throw new Error('Invalid format');
+
+        if(parsed.localStorage && typeof parsed.localStorage === 'object'){
+          Object.keys(parsed.localStorage).forEach(function(k){
+            var val = parsed.localStorage[k];
+            if(typeof val === 'object'){
+              localStorage.setItem(k, JSON.stringify(val));
+            } else if(val != null){
+              localStorage.setItem(k, String(val));
+            }
+          });
+        }
+
+        var newDays = parsed.days || parsed.cf_days || (parsed.localStorage && (parsed.localStorage.cf_days || parsed.localStorage.days));
+        var newLifts = parsed.lifts || parsed.cf_lifts || (parsed.localStorage && (parsed.localStorage.cf_lifts || parsed.localStorage.lifts));
+
+        if(newDays && typeof newDays === 'object'){
+          days = newDays;
+          save(LS_DAYS, days);
+        }
+        if(newLifts && typeof newLifts === 'object'){
+          lifts = newLifts;
+          save(LS_LIFTS, lifts);
+        }
+
+        var newLang = parsed.pulsefit_lang || (parsed.localStorage && parsed.localStorage.pulsefit_lang);
+        if(newLang && SUPPORTED_LANGS.indexOf(newLang) >= 0){
+          applyLang(newLang);
+        } else {
+          render();
+        }
+
+        say('backupMsg', t('backupImportSuccess'));
+      } catch(err){
+        say('backupMsg', t('backupImportError'), true);
+      } finally {
+        var inp = $('importInput');
+        if(inp) inp.value = '';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  if($('btnExportBackup')){
+    $('btnExportBackup').addEventListener('click', exportBackup);
+  }
+  if($('btnImportBackup')){
+    $('btnImportBackup').addEventListener('click', function(){
+      var inp = $('importInput');
+      if(inp) inp.click();
+    });
+  }
+  if($('importInput')){
+    $('importInput').addEventListener('change', function(e){
+      var f = e.target.files && e.target.files[0];
+      if(f) handleImportFile(f);
+    });
+  }
+
+  /* ---------- temporizador de descanso ---------- */
+  var timerPreset = 60;
+  var timerLeft = 60;
+  var timerRunning = false;
+  var timerInterval = null;
+  var timerTargetEnd = 0;
+  var timerRinging = false;
+  var audioCtx = null;
+
+  function getAudioContext(){
+    try {
+      if(!audioCtx){
+        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if(AudioContextClass) audioCtx = new AudioContextClass();
+      }
+      if(audioCtx && audioCtx.state === 'suspended'){
+        audioCtx.resume().catch(function(){});
+      }
+    }catch(e){}
+    return audioCtx;
+  }
+
+  function playTimerBeep(){
+    try{
+      var ctx = getAudioContext();
+      if(!ctx) return;
+      var now = ctx.currentTime;
+      var notes = [
+        { f: 784, start: 0, dur: 0.13 },
+        { f: 880, start: 0.15, dur: 0.13 },
+        { f: 1046.5, start: 0.30, dur: 0.28 }
+      ];
+      notes.forEach(function(n){
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(n.f, now + n.start);
+        gain.gain.setValueAtTime(0.0001, now + n.start);
+        gain.gain.exponentialRampToValueAtTime(0.22, now + n.start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + n.start + n.dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + n.start);
+        osc.stop(now + n.start + n.dur + 0.02);
+      });
+    }catch(e){}
+  }
+
+  function triggerTimerVibration(){
+    if(typeof navigator !== 'undefined' && 'vibrate' in navigator){
+      try{
+        navigator.vibrate([250, 150, 250, 150, 350]);
+      }catch(e){}
+    }
+  }
+
+  function formatTimeDigits(sec){
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return (m < 10 ? '0' + m : '' + m) + ':' + (s < 10 ? '0' + s : '' + s);
+  }
+
+  function updateTimerLabels(){
+    var playBtn = $('timerPlayBtn');
+    if(playBtn){
+      if(timerRunning){
+        playBtn.textContent = t('timerPause');
+      } else if(timerLeft > 0 && timerLeft < timerPreset){
+        playBtn.textContent = t('timerResume');
+      } else {
+        playBtn.textContent = t('timerStart');
+      }
+    }
+    var st = $('timerStatus');
+    if(st && timerRinging){
+      st.textContent = t('timerDone');
+    }
+  }
+
+  function updateTimerUI(){
+    var timeStr = formatTimeDigits(timerLeft);
+    if($('timerDigits')) $('timerDigits').textContent = timeStr;
+    if($('timerPillTime')) $('timerPillTime').textContent = timeStr;
+
+    document.querySelectorAll('.timer-preset-btn').forEach(function(b){
+      var sec = parseInt(b.getAttribute('data-sec'), 10);
+      b.classList.toggle('active', sec === timerPreset);
+    });
+
+    updateTimerLabels();
+
+    var restEl = $('restTimer');
+    var st = $('timerStatus');
+    if(restEl){
+      restEl.classList.toggle('ringing', timerRinging);
+    }
+    if(st){
+      st.hidden = !timerRinging;
+      if(timerRinging) st.textContent = t('timerDone');
+    }
+  }
+
+  function clearTimerRinging(){
+    if(timerRinging){
+      timerRinging = false;
+      var restEl = $('restTimer');
+      if(restEl) restEl.classList.remove('ringing');
+      var st = $('timerStatus');
+      if(st) st.hidden = true;
+    }
+  }
+
+  function timerTick(){
+    if(!timerRunning) return;
+    var now = Date.now();
+    var rem = Math.max(0, Math.ceil((timerTargetEnd - now) / 1000));
+    if(rem !== timerLeft){
+      timerLeft = rem;
+      updateTimerUI();
+    }
+    if(rem <= 0){
+      timerRunning = false;
+      if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+      timerRinging = true;
+      updateTimerUI();
+      playTimerBeep();
+      triggerTimerVibration();
+    }
+  }
+
+  function startTimerWith(sec){
+    getAudioContext();
+    clearTimerRinging();
+    timerPreset = sec;
+    timerLeft = sec;
+    timerTargetEnd = Date.now() + sec * 1000;
+    timerRunning = true;
+    if(timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(timerTick, 200);
+    updateTimerUI();
+  }
+
+  function togglePlayPause(){
+    getAudioContext();
+    clearTimerRinging();
+    if(timerRunning){
+      // Pausar
+      var now = Date.now();
+      timerLeft = Math.max(0, Math.ceil((timerTargetEnd - now) / 1000));
+      timerRunning = false;
+      if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+      updateTimerUI();
+    } else {
+      // Reanudar o Iniciar
+      if(timerLeft <= 0){
+        timerLeft = timerPreset || 60;
+      }
+      timerTargetEnd = Date.now() + timerLeft * 1000;
+      timerRunning = true;
+      if(timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(timerTick, 200);
+      updateTimerUI();
+    }
+  }
+
+  function resetTimer(){
+    getAudioContext();
+    clearTimerRinging();
+    timerRunning = false;
+    if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+    timerLeft = timerPreset || 60;
+    updateTimerUI();
+  }
+
+  function toggleTimerMinimize(minimized){
+    var pill = $('timerPill'), card = $('timerCard');
+    if(!pill || !card) return;
+    if(minimized){
+      card.hidden = true;
+      pill.hidden = false;
+    } else {
+      card.hidden = false;
+      pill.hidden = true;
+    }
+  }
+
+  // Event Listeners del temporizador
+  document.querySelectorAll('.timer-preset-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      var sec = parseInt(this.getAttribute('data-sec'), 10);
+      if(sec) startTimerWith(sec);
+    });
+  });
+
+  if($('timerPlayBtn')) $('timerPlayBtn').addEventListener('click', togglePlayPause);
+  if($('timerResetBtn')) $('timerResetBtn').addEventListener('click', resetTimer);
+  if($('timerToggleBtn')) $('timerToggleBtn').addEventListener('click', function(){ toggleTimerMinimize(true); });
+  if($('timerPill')) $('timerPill').addEventListener('click', function(){
+    clearTimerRinging();
+    toggleTimerMinimize(false);
+  });
+
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && timerRunning){
+      timerTick();
+    }
+  });
 
   /* ---------- pestañas ---------- */
   var TABS = ['caminata','pesas','total'];
@@ -1133,6 +2031,9 @@ details li{margin:4px 0}
       b.tabIndex = on ? 0 : -1;
       $('panel-'+tName).hidden = !on;
     });
+    if(name === 'total' && typeof renderProgressionChart === 'function'){
+      renderProgressionChart();
+    }
   }
   TABS.forEach(function(tName, i){
     var b = $('tab-'+tName);
@@ -1156,6 +2057,7 @@ details li{margin:4px 0}
   var initLang = detectLang();
   $('langSelect').addEventListener('change', function(e){ applyLang(e.target.value); });
   applyLang(initLang);
+  updateTimerUI();
 
   if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
     window.addEventListener('load', function(){ navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function(){}); });

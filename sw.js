@@ -1,13 +1,25 @@
-// Guarda la app en el dispositivo para que abra sin conexión.
-// Si cambiás algún archivo, subí la versión nueva y cambiá el número de CACHE para que se actualice.
-var CACHE = 'pulsefit-v8';
+﻿// Guarda la app en el dispositivo para que abra sin conexiÃ³n.
+// Si cambiÃ¡s algÃºn archivo, subÃ­ la versiÃ³n nueva y cambiÃ¡ el nÃºmero de CACHE para que se actualice.
+var CACHE = 'pulsefit-v12';
 var SHELL = [
   './',
   './index.html',
+  './css/styles.css',
   './manifest.webmanifest',
-  './icon-180.png',
-  './icon-192.png',
-  './icon-512.png'
+  './icons/icon-180.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './js/i18n/es.js',
+  './js/i18n/en.js',
+  './js/i18n/pt.js',
+  './js/i18n/fr.js',
+  './js/i18n/it.js',
+  './js/i18n/de.js',
+  './js/i18n/ru.js',
+  './js/i18n/ja.js',
+  './js/storage.js',
+  './js/charts.js',
+  './js/app.js'
 ];
 
 self.addEventListener('install', function (e) {
@@ -37,7 +49,7 @@ self.addEventListener('fetch', function (e) {
 
   var url = new URL(req.url);
 
-  // Network-First para peticiones de navegación y archivos HTML
+  // Network-First para peticiones de navegaciÃ³n y archivos HTML
   var isHtmlOrNav = req.mode === 'navigate' ||
                     req.destination === 'document' ||
                     (req.headers.get('accept') && req.headers.get('accept').indexOf('text/html') !== -1) ||
@@ -105,3 +117,4 @@ self.addEventListener('fetch', function (e) {
     })
   );
 });
+

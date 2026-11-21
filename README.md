@@ -10,10 +10,10 @@
 
 ### ✨ Características
 
-- 🌍 **Soporte multi-idioma (5 idiomas)**: Selector discreto en la esquina superior derecha con soporte para **Español (ES)**, **English (EN)**, **Português (PT)**, **Français (FR)** e **Italiano (IT)**. Detección automática del idioma del navegador en la primera visita y persistencia de preferencia en `localStorage`.
+- 🌍 **Soporte multi-idioma (8 idiomas)**: Selector discreto en la esquina superior derecha con soporte para **Español (ES)**, **English (EN)**, **Português (PT)**, **Français (FR)**, **Italiano (IT)**, **Deutsch (DE)**, **Русский (RU)** y **日本語 (JA)**. Detección automática del idioma del navegador en la primera visita y persistencia de preferencia en `localStorage`.
 - 🚶 **Caminata y cardio**: Registro de distancia (km), calorías activas, pasos, duración en minutos y notas del entrenamiento. Cálculo automático de rachas de días consecutivos y totales acumulados.
 - 🥗 **Registro de comidas**: Seguimiento diario de desayuno, almuerzo, merienda, cena y comidas intermedias o bebidas.
-- ⏱️ **Temporizador de descanso flotante**: Widget discreto en la esquina inferior con botones rápidos (60s, 90s, 120s), controles de pausar y reiniciar, minimizable en formato píldora, aviso sonoro suave mediante Web Audio API (sin archivos de audio externos) y vibración con Web Vibration API (`navigator.vibrate`), con soporte multi-idioma (ES, EN, PT, FR, IT).
+- ⏱️ **Temporizador de descanso flotante**: Widget discreto en la esquina inferior con botones rápidos (60s, 90s, 120s), controles de pausar y reiniciar, minimizable en formato píldora, aviso sonoro suave mediante Web Audio API (sin archivos de audio externos) y vibración con Web Vibration API (`navigator.vibrate`), con soporte multi-idioma (ES, EN, PT, FR, IT, DE, RU, JA).
 - 💪 **Rutina y registro de pesas**:
   - Rutinas sugeridas organizadas por días de la semana (*Empuje A/B*, *Tirón A/B*) con descansos activos enfocados en caminadora.
   - Catálogo de ejercicios clasificado por equipamiento: máquina multifuncional, barra y banca, o mancuernas.
@@ -51,10 +51,10 @@ Al ser una **Progressive Web App (PWA)** servida bajo HTTPS, puedes instalarla e
 
 ### ✨ Features
 
-- 🌍 **Multi-language support (5 languages)**: Discreet language switcher in the top-right corner with full support for **Español (ES)**, **English (EN)**, **Português (PT)**, **Français (FR)**, and **Italiano (IT)**. Automatically detects browser language on first visit and saves your preference in `localStorage`.
+- 🌍 **Multi-language support (8 languages)**: Discreet language switcher in the top-right corner with full support for **Español (ES)**, **English (EN)**, **Português (PT)**, **Français (FR)**, **Italiano (IT)**, **Deutsch (DE)**, **Русский (RU)**, and **日本語 (JA)**. Automatically detects browser language on first visit and saves your preference in `localStorage`.
 - 🚶 **Walking & Cardio Tracking**: Log distance (km), active calories, steps, duration (minutes), and workout notes. Automatically calculates consecutive day streaks and cumulative totals.
 - 🥗 **Meal Logging**: Daily tracking for breakfast, lunch, afternoon snack, dinner, and throughout-the-day snacks or beverages.
-- ⏱️ **Floating Rest Timer**: Discreet widget in the bottom corner with quick presets (60s, 90s, 120s), pause and reset controls, minimizable pill mode, gentle synthesized chime using Web Audio API (zero external mp3 files), and mobile vibration using Web Vibration API (`navigator.vibrate`), fully translated into 5 languages (ES, EN, PT, FR, IT).
+- ⏱️ **Floating Rest Timer**: Discreet widget in the bottom corner with quick presets (60s, 90s, 120s), pause and reset controls, minimizable pill mode, gentle synthesized chime using Web Audio API (zero external mp3 files), and mobile vibration using Web Vibration API (`navigator.vibrate`), fully translated into 8 languages (ES, EN, PT, FR, IT, DE, RU, JA).
 - 💪 **Gym Routine & Weightlifting Log**:
   - Structured routine organized by days (*Push A/B*, *Pull A/B*) with active recovery treadmill days.
   - Exercise catalog categorized by equipment: multifunction machine, barbell & bench, or dumbbells.

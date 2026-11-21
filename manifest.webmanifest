@@ -1,7 +1,7 @@
 {
   "name": "PulseFit",
   "short_name": "PulseFit",
-  "description": "Seguimiento de caminata, comidas y pesas.",
+  "description": "Seguimiento de cardio, comidas y pesas.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",

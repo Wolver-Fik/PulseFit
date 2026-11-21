@@ -1,0 +1,1166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PulseFit</title>
+<meta name="theme-color" content="#0B7A66">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PulseFit">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" type="image/png" href="./icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: una columna angosta con tres pestañas (Caminata, Pesas, Total). */
+:root{
+  color-scheme:light;
+  --bg:#F2F5F4; --surface:#FFFFFF; --fg:#13201D; --muted:#5B6B67; --line:#D8E0DE;
+  --accent:#0B7A66; --accent-fg:#FFFFFF; --soft:#E3EFEC; --bad:#B3392F;
+  --head:'Space Grotesk',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1614; --surface:#16211F; --fg:#E6EFEC; --muted:#93A5A0; --line:#273532;
+    --accent:#3CC4A8; --accent-fg:#06211B; --soft:#1B2D29; --bad:#F08A80; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1614; --surface:#16211F; --fg:#E6EFEC; --muted:#93A5A0; --line:#273532;
+  --accent:#3CC4A8; --accent-fg:#06211B; --soft:#1B2D29; --bad:#F08A80; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(48px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.top-bar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.brand{min-width:0}
+h1,h2,h3{font-family:var(--head);margin:0;text-wrap:balance}
+h1{font-size:28px;line-height:1.1;letter-spacing:-.01em}
+h2{font-size:17px}
+h3{font-size:14px;font-weight:500;color:var(--muted)}
+.sub{color:var(--muted);margin:4px 0 0}
+.lang-wrap{display:flex;align-items:center;flex-shrink:0}
+.lang-select{
+  font-family:var(--body);font-size:12px;font-weight:500;padding:5px 8px;border-radius:8px;
+  border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;
+  outline:none;transition:border-color .15s;
+}
+.lang-select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+button.tab{flex:1;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:12px 8px;font-weight:600;color:var(--muted)}
+button.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tabpanel{display:flex;flex-direction:column;gap:16px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.wd{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.dot{width:100%;max-width:44px;aspect-ratio:1;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent-fg)}
+.dot.on{background:var(--accent);border-color:var(--accent)}
+.dot.today{border-color:var(--fg)}
+.dot.future{opacity:.45}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:12px}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat b{font-family:var(--head);font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+input,button,select{font:inherit}
+input[type=date],input[type=number],input[type=text],select{width:100%;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+.wide{grid-column:1/-1}
+.group{display:flex;flex-direction:column;gap:10px;padding-top:4px;border-top:1px solid var(--line)}
+.group .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.check{flex-direction:row;align-items:center;gap:10px;color:var(--fg);font-size:15px}
+.check input{width:20px;height:20px;accent-color:var(--accent)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{cursor:pointer;border-radius:8px;padding:9px 16px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+button.link{border:0;background:none;padding:4px 6px;color:var(--accent);text-decoration:underline}
+button.link.danger{color:var(--bad)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.msg{font-size:13px;color:var(--muted)} .msg.err{color:var(--bad)}
+.scroll{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+td.n,th.n{text-align:right}
+td.meals{min-width:240px;font-size:13px}
+td.meals div+div{margin-top:3px}
+td.meals b{font-weight:600;color:var(--muted)}
+.tag{font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px}
+.tag.yes{background:var(--soft);color:var(--accent)}
+.tag.no{color:var(--muted);border:1px solid var(--line)}
+.empty{color:var(--muted);padding:16px 0 4px}
+.rt-head{margin:6px 0 0;color:var(--muted)}
+.rt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:12px}
+.rt{border:1px solid var(--line);border-radius:8px;padding:12px;min-width:0}
+.rt.today{border-color:var(--accent);background:var(--soft)}
+.rt h3{color:var(--fg);font-size:15px}
+.rt-sub{margin:2px 0 8px;font-size:13px;color:var(--muted)}
+.rt ul{margin:0;padding-left:18px;font-size:14px}
+.rt li{margin:4px 0}
+.rt li span{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+details{margin-top:12px;font-size:14px;color:var(--muted)}
+details summary{cursor:pointer;color:var(--accent);font-weight:500}
+details ul{margin:8px 0 0;padding-left:18px}
+details li{margin:4px 0}
+.gday{margin-top:14px}
+.lift{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.lift .what{min-width:0}
+.lift .what small{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<main>
+  <header class="top-bar">
+    <div class="brand">
+      <h1>PulseFit</h1>
+      <p class="sub" data-i18n="appSub">Tu seguimiento de caminata, comidas y pesas.</p>
+    </div>
+    <div class="lang-wrap">
+      <select id="langSelect" class="lang-select" aria-label="Language / Idioma">
+        <option value="es">Español (ES)</option>
+        <option value="en">English (EN)</option>
+        <option value="pt">Português (PT)</option>
+        <option value="fr">Français (FR)</option>
+        <option value="it">Italiano (IT)</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Secciones">
+    <button class="tab" role="tab" type="button" id="tab-caminata" aria-controls="panel-caminata" aria-selected="true" data-i18n="tabWalking">Caminata</button>
+    <button class="tab" role="tab" type="button" id="tab-pesas" aria-controls="panel-pesas" aria-selected="false" tabindex="-1" data-i18n="tabWeights">Pesas</button>
+    <button class="tab" role="tab" type="button" id="tab-total" aria-controls="panel-total" aria-selected="false" tabindex="-1" data-i18n="tabTotal">Total</button>
+  </div>
+
+  <div class="tabpanel" id="panel-caminata" role="tabpanel" aria-labelledby="tab-caminata">
+    <section class="panel" aria-labelledby="h-log">
+      <h2 id="h-log" data-i18n="hLog">Registrar un día</h2>
+      <form id="f">
+        <label for="date"><span data-i18n="labelDate">Fecha</span><input type="date" id="date" required></label>
+        <label for="km"><span data-i18n="labelKm">Distancia (km)</span><input type="number" id="km" step="0.01" min="0" inputmode="decimal"></label>
+        <label for="kcal"><span data-i18n="labelKcal">Calorías activas</span><input type="number" id="kcal" step="1" min="0" inputmode="numeric"></label>
+        <label for="steps"><span data-i18n="labelSteps">Pasos</span><input type="number" id="steps" step="1" min="0" inputmode="numeric"></label>
+        <label for="minutes"><span data-i18n="labelMinutes">Minutos</span><input type="number" id="minutes" step="1" min="0" inputmode="numeric"></label>
+        <label class="check wide" for="ex"><input type="checkbox" id="ex" checked> <span data-i18n="labelExercised">Hice ejercicio este día</span></label>
+        <label class="wide" for="entreno"><span data-i18n="labelWhat">Qué hice</span><input type="text" id="entreno" data-i18n-ph="phWhat" placeholder="Ej: caminadora, 4 intervalos de 1 min corriendo"></label>
+        <div class="group wide">
+          <h3 data-i18n="hMeals">Comidas</h3>
+          <div class="grid">
+            <label for="desayuno"><span data-i18n="desayuno">Desayuno</span><input type="text" id="desayuno"></label>
+            <label for="almuerzo"><span data-i18n="almuerzo">Almuerzo</span><input type="text" id="almuerzo"></label>
+            <label for="merienda"><span data-i18n="merienda">Merienda</span><input type="text" id="merienda"></label>
+            <label for="cena"><span data-i18n="cena">Cena</span><input type="text" id="cena"></label>
+            <label for="otros" class="wide"><span data-i18n="otros">Durante el día</span><input type="text" id="otros" data-i18n-ph="phMealsOther" placeholder="Snacks, comida fuera de horario, bebidas"></label>
+          </div>
+        </div>
+        <div class="actions wide">
+          <button class="primary" type="submit" id="save" data-i18n="btnSave">Guardar día</button>
+          <button type="button" id="reset" data-i18n="btnReset">Limpiar</button>
+          <span class="msg" id="msg" role="status"></span>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="h-hist">
+      <h2 id="h-hist" data-i18n="hHist">Historial</h2>
+      <div class="scroll" id="hist"></div>
+    </section>
+  </div>
+
+  <div class="tabpanel" id="panel-pesas" role="tabpanel" aria-labelledby="tab-pesas" hidden>
+    <section class="panel" aria-labelledby="h-rt">
+      <h2 id="h-rt" data-i18n="hRoutine">Rutina de gimnasio</h2>
+      <p class="rt-head" id="rtHead"></p>
+      <div class="rt-grid" id="rtGrid"></div>
+      <p class="msg" id="rtNote" data-i18n="rtNote" style="margin-top:12px">Martes, jueves y domingo: solo caminadora, sin pesas. Esos días los músculos se recuperan.</p>
+      <details>
+        <summary data-i18n="progressionTitle">Cómo progresar</summary>
+        <ul id="progList"></ul>
+      </details>
+    </section>
+
+    <section class="panel" aria-labelledby="h-lift">
+      <h2 id="h-lift" data-i18n="hLogLift">Registrar ejercicio con peso</h2>
+      <form id="gf">
+        <label for="gdate"><span data-i18n="labelDate">Fecha</span><input type="date" id="gdate" required></label>
+        <label for="gtype"><span data-i18n="labelEquipment">Equipo</span>
+          <select id="gtype">
+            <option value="maquina">Máquina multifuncional</option>
+            <option value="barra">Barra y banca</option>
+            <option value="mancuernas">Mancuernas</option>
+          </select>
+        </label>
+        <label class="wide" for="gex"><span data-i18n="labelExercise">Ejercicio</span><input type="text" id="gex" list="gexlist" required data-i18n-ph="phExercise" placeholder="Elegí uno de la lista o escribí otro"><datalist id="gexlist"></datalist></label>
+        <label for="gsets"><span data-i18n="labelSets">Series</span><input type="number" id="gsets" min="1" step="1" inputmode="numeric" value="3"></label>
+        <label for="greps"><span data-i18n="labelReps">Repeticiones</span><input type="number" id="greps" min="1" step="1" inputmode="numeric"></label>
+        <label for="gkg"><span data-i18n="labelKg">Peso (kg)</span><input type="number" id="gkg" min="0" step="0.5" inputmode="decimal"></label>
+        <div class="actions wide">
+          <button class="primary" type="submit" id="gsave" data-i18n="btnAdd">Agregar</button>
+          <span class="msg" id="gmsg" role="status"></span>
+        </div>
+        <p class="msg wide" id="liftHelper" data-i18n="liftHelper" style="margin:0">Si hiciste series con pesos distintos, agregá una fila por cada peso.</p>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="h-lifthist">
+      <h2 id="h-lifthist" data-i18n="hLiftsByDay">Pesas por día</h2>
+      <div id="gHist"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-marks">
+      <h2 id="h-marks" data-i18n="hMarks">Mejor marca por ejercicio</h2>
+      <div class="scroll" id="gMarks"></div>
+    </section>
+  </div>
+
+  <div class="tabpanel" id="panel-total" role="tabpanel" aria-labelledby="tab-total" hidden>
+    <section class="panel" aria-labelledby="h-week">
+      <h2 id="h-week" data-i18n="hWeek">Esta semana</h2>
+      <div class="week" id="week"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-ctot">
+      <h2 id="h-ctot" data-i18n="hWalkTotals">Caminata y días</h2>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-gtot">
+      <h2 id="h-gtot" data-i18n="hLiftTotals">Pesas en total</h2>
+      <div class="stats" id="gstats"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+(function(){
+  var SUPPORTED_LANGS = ['es', 'en', 'pt', 'fr', 'it'];
+  var LOCALE = { es:'es-ES', en:'en-US', pt:'pt-BR', fr:'fr-FR', it:'it-IT' };
+  var curLang = 'es';
+
+  var I18N = {
+    es: {
+      appSub: 'Tu seguimiento de caminata, comidas y pesas.',
+      tabWalking: 'Caminata',
+      tabWeights: 'Pesas',
+      tabTotal: 'Total',
+      hLog: 'Registrar un día',
+      labelDate: 'Fecha',
+      labelKm: 'Distancia (km)',
+      labelKcal: 'Calorías activas',
+      labelSteps: 'Pasos',
+      labelMinutes: 'Minutos',
+      labelExercised: 'Hice ejercicio este día',
+      labelWhat: 'Qué hice',
+      phWhat: 'Ej: caminadora, 4 intervalos de 1 min corriendo',
+      hMeals: 'Comidas',
+      desayuno: 'Desayuno',
+      almuerzo: 'Almuerzo',
+      merienda: 'Merienda',
+      cena: 'Cena',
+      otros: 'Durante el día',
+      phMealsOther: 'Snacks, comida fuera de horario, bebidas',
+      btnSave: 'Guardar día',
+      btnReset: 'Limpiar',
+      hHist: 'Historial',
+      hRoutine: 'Rutina de gimnasio',
+      rtNote: 'Martes, jueves y domingo: solo caminadora, sin pesas. Esos días los músculos se recuperan.',
+      progressionTitle: 'Cómo progresar',
+      progressionItems: [
+        'Calentá 5 a 10 minutos en la caminadora y hacé una o dos series livianas del primer ejercicio.',
+        'Elegí un peso con el que te sobren 2 o 3 repeticiones al final de cada serie.',
+        'Cuando completes todas las series en el máximo del rango, subí un poco el peso: 2,5 kg en la barra, 1 o 2 kg en las mancuernas.',
+        'En el press de banca, entrená con alguien que te cubra o con los topes de seguridad puestos. En el peso muerto, la técnica va antes que el peso.',
+        'Si sentís un dolor punzante, cortá el ejercicio.'
+      ],
+      hLogLift: 'Registrar ejercicio con peso',
+      labelEquipment: 'Equipo',
+      labelExercise: 'Ejercicio',
+      phExercise: 'Elegí uno de la lista o escribí otro',
+      labelSets: 'Series',
+      labelReps: 'Repeticiones',
+      labelKg: 'Peso (kg)',
+      btnAdd: 'Agregar',
+      liftHelper: 'Si hiciste series con pesos distintos, agregá una fila por cada peso.',
+      hLiftsByDay: 'Pesas por día',
+      hMarks: 'Mejor marca por ejercicio',
+      hWeek: 'Esta semana',
+      hWalkTotals: 'Caminata y días',
+      hLiftTotals: 'Pesas en total',
+      statusWorked: 'Entrenó',
+      statusRest: 'Descanso',
+      thDate: 'Fecha',
+      thStatus: 'Estado',
+      thKm: 'km',
+      thKcal: 'kcal',
+      thSteps: 'Pasos',
+      thMin: 'Min',
+      thMeals: 'Comidas',
+      thExercise: 'Ejercicio',
+      thBestWeight: 'Mejor peso',
+      thReps: 'Reps',
+      btnEdit: 'Editar',
+      btnDelete: 'Borrar',
+      btnSure: '¿Seguro?',
+      noMealsLogged: 'Sin comidas cargadas',
+      emptyHist: 'Cuando guardes tu primer día, aparece acá.',
+      emptyLifts: 'Todavía no registraste ejercicios con peso.',
+      emptyMarks: 'Acá van a aparecer tus mejores pesos.',
+      withConnector: 'con',
+      rtRest: 'Hoy no hay pesas, solo caminadora.',
+      rtToday: 'Hoy toca: {name}.',
+      savedDay: 'Guardado: {date}.',
+      editingDay: 'Editando {date}. Guardá para actualizar.',
+      missingFields: 'Falta la fecha o el ejercicio.',
+      missingSetsReps: 'Poné al menos 1 serie y 1 repetición.',
+      addedLift: 'Agregado: {ex}.',
+      streak1: 'día seguido',
+      streakN: 'días seguidos',
+      workout1: 'día con ejercicio',
+      workoutN: 'días con ejercicio',
+      totalKm: 'km en total',
+      activeKcal: 'kcal activas',
+      steps: 'pasos',
+      minutes: 'minutos',
+      mealsLogged1: 'día con comidas cargadas',
+      mealsLoggedN: 'días con comidas cargadas',
+      liftDay1: 'día con pesas',
+      liftDayN: 'días con pesas',
+      sets: 'series',
+      reps: 'repeticiones',
+      totalVolume: 'levantados en total',
+      distinctEx1: 'ejercicio distinto',
+      distinctExN: 'ejercicios distintos',
+      maxWeight: 'peso máximo',
+      weekLetters: ['L','M','X','J','V','S','D'],
+      dayNames: ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'],
+      types: { maquina: 'Máquina multifuncional', barra: 'Barra y banca', mancuernas: 'Mancuernas' },
+      routines: {
+        5: { name: 'Empuje A', sub: 'Pecho, hombros y tríceps' },
+        0: { name: 'Tirón A', sub: 'Espalda y bíceps, con peso muerto' },
+        2: { name: 'Empuje B', sub: 'Pecho, hombros y tríceps' },
+        4: { name: 'Tirón B', sub: 'Espalda y bíceps, con remo con barra' }
+      },
+      repUnits: { perSide: 'por lado' }
+    },
+    en: {
+      appSub: 'Your personal tracker for walking, nutrition, and lifting.',
+      tabWalking: 'Walking',
+      tabWeights: 'Weights',
+      tabTotal: 'Total',
+      hLog: 'Log a day',
+      labelDate: 'Date',
+      labelKm: 'Distance (km)',
+      labelKcal: 'Active calories',
+      labelSteps: 'Steps',
+      labelMinutes: 'Minutes',
+      labelExercised: 'I exercised today',
+      labelWhat: 'What I did',
+      phWhat: 'E.g.: treadmill, 4 intervals of 1 min running',
+      hMeals: 'Meals',
+      desayuno: 'Breakfast',
+      almuerzo: 'Lunch',
+      merienda: 'Snack',
+      cena: 'Dinner',
+      otros: 'Throughout the day',
+      phMealsOther: 'Snacks, off-schedule food, drinks',
+      btnSave: 'Save day',
+      btnReset: 'Clear',
+      hHist: 'History',
+      hRoutine: 'Gym routine',
+      rtNote: 'Tuesday, Thursday, and Sunday: treadmill only, no lifting. Recovery days for your muscles.',
+      progressionTitle: 'How to progress',
+      progressionItems: [
+        'Warm up for 5 to 10 minutes on the treadmill and do one or two light warm-up sets of the first exercise.',
+        'Choose a weight that leaves 2 to 3 reps in reserve at the end of each set.',
+        'Once you complete all sets at the upper rep range, increase the weight slightly: 2.5 kg on the barbell, 1-2 kg on dumbbells.',
+        'On bench press, use safety pins or train with a spotter. On deadlifts, technique always comes before weight.',
+        'If you feel sharp or unnatural pain, stop the exercise immediately.'
+      ],
+      hLogLift: 'Log weighted exercise',
+      labelEquipment: 'Equipment',
+      labelExercise: 'Exercise',
+      phExercise: 'Choose from list or type another',
+      labelSets: 'Sets',
+      labelReps: 'Reps',
+      labelKg: 'Weight (kg)',
+      btnAdd: 'Add',
+      liftHelper: 'If you did sets with different weights, add one row for each weight.',
+      hLiftsByDay: 'Lifting by day',
+      hMarks: 'Personal records by exercise',
+      hWeek: 'This week',
+      hWalkTotals: 'Walking & days',
+      hLiftTotals: 'Lifting totals',
+      statusWorked: 'Exercised',
+      statusRest: 'Rest',
+      thDate: 'Date',
+      thStatus: 'Status',
+      thKm: 'km',
+      thKcal: 'kcal',
+      thSteps: 'Steps',
+      thMin: 'Min',
+      thMeals: 'Meals',
+      thExercise: 'Exercise',
+      thBestWeight: 'Best weight',
+      thReps: 'Reps',
+      btnEdit: 'Edit',
+      btnDelete: 'Delete',
+      btnSure: 'Sure?',
+      noMealsLogged: 'No meals logged',
+      emptyHist: 'Once you save your first day, it will appear here.',
+      emptyLifts: 'No weighted exercises logged yet.',
+      emptyMarks: 'Your personal bests will appear here.',
+      withConnector: 'with',
+      rtRest: 'No lifting today, treadmill only.',
+      rtToday: "Today's routine: {name}.",
+      savedDay: 'Saved: {date}.',
+      editingDay: 'Editing {date}. Save to update.',
+      missingFields: 'Missing date or exercise.',
+      missingSetsReps: 'Enter at least 1 set and 1 rep.',
+      addedLift: 'Added: {ex}.',
+      streak1: 'day streak',
+      streakN: 'day streak',
+      workout1: 'workout day',
+      workoutN: 'workout days',
+      totalKm: 'total km',
+      activeKcal: 'active kcal',
+      steps: 'steps',
+      minutes: 'minutes',
+      mealsLogged1: 'day with meals logged',
+      mealsLoggedN: 'days with meals logged',
+      liftDay1: 'lifting day',
+      liftDayN: 'lifting days',
+      sets: 'sets',
+      reps: 'reps',
+      totalVolume: 'total lifted',
+      distinctEx1: 'distinct exercise',
+      distinctExN: 'distinct exercises',
+      maxWeight: 'max weight',
+      weekLetters: ['M','T','W','T','F','S','S'],
+      dayNames: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+      types: { maquina: 'Multifunction machine', barra: 'Barbell & bench', mancuernas: 'Dumbbells' },
+      routines: {
+        5: { name: 'Push A', sub: 'Chest, shoulders & triceps' },
+        0: { name: 'Pull A', sub: 'Back & biceps, with deadlift' },
+        2: { name: 'Push B', sub: 'Chest, shoulders & triceps' },
+        4: { name: 'Pull B', sub: 'Back & biceps, with barbell row' }
+      },
+      repUnits: { perSide: 'per side' }
+    },
+    pt: {
+      appSub: 'Seu acompanhamento de caminhada, alimentação e musculação.',
+      tabWalking: 'Caminhada',
+      tabWeights: 'Musculação',
+      tabTotal: 'Total',
+      hLog: 'Registrar um dia',
+      labelDate: 'Data',
+      labelKm: 'Distância (km)',
+      labelKcal: 'Calorias ativas',
+      labelSteps: 'Passos',
+      labelMinutes: 'Minutos',
+      labelExercised: 'Treinei neste dia',
+      labelWhat: 'O que fiz',
+      phWhat: 'Ex: esteira, 4 intervalos de 1 min correndo',
+      hMeals: 'Refeições',
+      desayuno: 'Café da manhã',
+      almuerzo: 'Almoço',
+      merienda: 'Lanche',
+      cena: 'Jantar',
+      otros: 'Durante o dia',
+      phMealsOther: 'Snacks, lanches fora de hora, bebidas',
+      btnSave: 'Salvar dia',
+      btnReset: 'Limpar',
+      hHist: 'Histórico',
+      hRoutine: 'Rotina de treino',
+      rtNote: 'Terça, quinta e domingo: apenas esteira, sem musculação. Dias para recuperação muscular.',
+      progressionTitle: 'Como progredir',
+      progressionItems: [
+        'Aqueça de 5 a 10 minutos na esteira e faça uma ou duas séries leves do primeiro exercício.',
+        'Escolha uma carga com a qual sobrem 2 ou 3 repetições de reserva ao final de cada série.',
+        'Quando completar todas as séries no limite máximo da faixa, aumente o peso: 2,5 kg na barra, 1 a 2 kg nos halteres.',
+        'No supino, treine com alguém para ajudar ou com travas de segurança. No levantamento terra, a técnica vem antes da carga.',
+        'Se sentir uma dor aguda, interrompa o exercício imediatamente.'
+      ],
+      hLogLift: 'Registrar exercício com peso',
+      labelEquipment: 'Equipamento',
+      labelExercise: 'Exercício',
+      phExercise: 'Escolha da lista ou digite outro',
+      labelSets: 'Séries',
+      labelReps: 'Repetições',
+      labelKg: 'Peso (kg)',
+      btnAdd: 'Adicionar',
+      liftHelper: 'Se fez séries com pesos diferentes, adicione uma linha para cada peso.',
+      hLiftsByDay: 'Musculação por dia',
+      hMarks: 'Melhor marca por exercício',
+      hWeek: 'Esta semana',
+      hWalkTotals: 'Caminhada e dias',
+      hLiftTotals: 'Total de musculação',
+      statusWorked: 'Treinou',
+      statusRest: 'Descanso',
+      thDate: 'Data',
+      thStatus: 'Status',
+      thKm: 'km',
+      thKcal: 'kcal',
+      thSteps: 'Passos',
+      thMin: 'Min',
+      thMeals: 'Refeições',
+      thExercise: 'Exercício',
+      thBestWeight: 'Melhor peso',
+      thReps: 'Reps',
+      btnEdit: 'Editar',
+      btnDelete: 'Excluir',
+      btnSure: 'Certeza?',
+      noMealsLogged: 'Sem refeições registradas',
+      emptyHist: 'Quando você salvar seu primeiro dia, aparecerá aqui.',
+      emptyLifts: 'Você ainda não registrou exercícios com peso.',
+      emptyMarks: 'Seus melhores pesos aparecerão aqui.',
+      withConnector: 'com',
+      rtRest: 'Hoje não há musculação, apenas esteira.',
+      rtToday: 'Hoje é dia de: {name}.',
+      savedDay: 'Salvo: {date}.',
+      editingDay: 'Editando {date}. Salve para atualizar.',
+      missingFields: 'Falta a data ou o exercício.',
+      missingSetsReps: 'Insira pelo menos 1 série e 1 repetição.',
+      addedLift: 'Adicionado: {ex}.',
+      streak1: 'dia consecutivo',
+      streakN: 'dias consecutivos',
+      workout1: 'dia com treino',
+      workoutN: 'dias com treino',
+      totalKm: 'km no total',
+      activeKcal: 'kcal ativas',
+      steps: 'passos',
+      minutes: 'minutos',
+      mealsLogged1: 'dia com refeições registradas',
+      mealsLoggedN: 'dias com refeições registradas',
+      liftDay1: 'dia com musculação',
+      liftDayN: 'dias com musculação',
+      sets: 'séries',
+      reps: 'repetições',
+      totalVolume: 'levantados no total',
+      distinctEx1: 'exercício diferente',
+      distinctExN: 'exercícios diferentes',
+      maxWeight: 'peso máximo',
+      weekLetters: ['S','T','Q','Q','S','S','D'],
+      dayNames: ['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'],
+      types: { maquina: 'Máquina multifuncional', barra: 'Barra e banco', mancuernas: 'Halteres' },
+      routines: {
+        5: { name: 'Empurrar A', sub: 'Peito, ombros e tríceps' },
+        0: { name: 'Puxar A', sub: 'Costas e bíceps, com levantamento terra' },
+        2: { name: 'Empurrar B', sub: 'Peito, ombros e tríceps' },
+        4: { name: 'Puxar B', sub: 'Costas e bíceps, com remada com barra' }
+      },
+      repUnits: { perSide: 'por lado' }
+    },
+    fr: {
+      appSub: 'Votre suivi personnel de marche, repas et musculation.',
+      tabWalking: 'Marche',
+      tabWeights: 'Musculation',
+      tabTotal: 'Total',
+      hLog: 'Enregistrer une journée',
+      labelDate: 'Date',
+      labelKm: 'Distance (km)',
+      labelKcal: 'Calories actives',
+      labelSteps: 'Pas',
+      labelMinutes: 'Minutes',
+      labelExercised: "J'ai fait de l'exercice ce jour",
+      labelWhat: "Ce que j'ai fait",
+      phWhat: 'Ex : tapis roulant, 4 intervalles de 1 min de course',
+      hMeals: 'Repas',
+      desayuno: 'Petit-déjeuner',
+      almuerzo: 'Déjeuner',
+      merienda: 'Goûter',
+      cena: 'Dîner',
+      otros: 'Pendant la journée',
+      phMealsOther: 'En-cas, nourriture hors repas, boissons',
+      btnSave: 'Enregistrer le jour',
+      btnReset: 'Effacer',
+      hHist: 'Historique',
+      hRoutine: 'Programme de musculation',
+      rtNote: 'Mardi, jeudi et dimanche : tapis uniquement, sans musculation. Récupération musculaire.',
+      progressionTitle: 'Comment progresser',
+      progressionItems: [
+        "Échauffez-vous 5 à 10 minutes sur le tapis et faites une ou deux séries légères du premier exercice.",
+        "Choisissez une charge qui vous laisse 2 ou 3 répétitions en réserve à la fin de chaque série.",
+        "Lorsque vous complétez toutes les séries au maximum de la fourchette, augmentez un peu la charge : 2,5 kg sur la barre, 1 ou 2 kg sur les haltères.",
+        "Au développé couché, entraînez-vous avec pareur ou barres de sécurité. Au soulevé de terre, la technique prime sur la charge.",
+        "Si vous ressentez une douleur vive, arrêtez immédiatement l'exercice."
+      ],
+      hLogLift: 'Enregistrer un exercice avec poids',
+      labelEquipment: 'Équipement',
+      labelExercise: 'Exercice',
+      phExercise: 'Choisissez dans la liste ou écrivez-en un',
+      labelSets: 'Séries',
+      labelReps: 'Répétitions',
+      labelKg: 'Poids (kg)',
+      btnAdd: 'Ajouter',
+      liftHelper: 'Si vous avez fait des séries avec des poids différents, ajoutez une ligne par poids.',
+      hLiftsByDay: 'Musculation par jour',
+      hMarks: 'Meilleures performances par exercice',
+      hWeek: 'Cette semaine',
+      hWalkTotals: 'Marche et jours',
+      hLiftTotals: 'Total musculation',
+      statusWorked: 'Entraîné',
+      statusRest: 'Repos',
+      thDate: 'Date',
+      thStatus: 'Statut',
+      thKm: 'km',
+      thKcal: 'kcal',
+      thSteps: 'Pas',
+      thMin: 'Min',
+      thMeals: 'Repas',
+      thExercise: 'Exercice',
+      thBestWeight: 'Meilleur poids',
+      thReps: 'Reps',
+      btnEdit: 'Modifier',
+      btnDelete: 'Supprimer',
+      btnSure: 'Sûr ?',
+      noMealsLogged: 'Aucun repas enregistré',
+      emptyHist: 'Lorsque vous enregistrerez votre premier jour, il apparaîtra ici.',
+      emptyLifts: "Vous n'avez pas encore enregistré d'exercices avec poids.",
+      emptyMarks: 'Vos meilleures performances apparaîtront ici.',
+      withConnector: 'avec',
+      rtRest: "Pas de musculation aujourd'hui, tapis uniquement.",
+      rtToday: "Programme du jour : {name}.",
+      savedDay: 'Enregistré : {date}.',
+      editingDay: 'Modification de {date}. Enregistrez pour actualiser.',
+      missingFields: "Date ou exercice manquant.",
+      missingSetsReps: 'Indiquez au moins 1 série et 1 répétition.',
+      addedLift: 'Ajouté : {ex}.',
+      streak1: 'jour consécutif',
+      streakN: 'jours consécutifs',
+      workout1: "jour d'exercice",
+      workoutN: "jours d'exercice",
+      totalKm: 'km au total',
+      activeKcal: 'kcal actives',
+      steps: 'pas',
+      minutes: 'minutes',
+      mealsLogged1: 'jour avec repas enregistrés',
+      mealsLoggedN: 'jours avec repas enregistrés',
+      liftDay1: 'jour de musculation',
+      liftDayN: 'jours de musculation',
+      sets: 'séries',
+      reps: 'répétitions',
+      totalVolume: 'soulevés au total',
+      distinctEx1: 'exercice différent',
+      distinctExN: 'exercices différents',
+      maxWeight: 'poids maximal',
+      weekLetters: ['L','M','M','J','V','S','D'],
+      dayNames: ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'],
+      types: { maquina: 'Machine multifonction', barra: 'Barre et banc', mancuernas: 'Haltères' },
+      routines: {
+        5: { name: 'Poussée A', sub: 'Poitrine, épaules et triceps' },
+        0: { name: 'Tirage A', sub: 'Dos et biceps, avec soulevé de terre' },
+        2: { name: 'Poussée B', sub: 'Poitrine, épaules et triceps' },
+        4: { name: 'Tirage B', sub: 'Dos et biceps, avec rowing barre' }
+      },
+      repUnits: { perSide: 'par côté' }
+    },
+    it: {
+      appSub: 'Il tuo monitoraggio di camminata, alimentazione e pesi.',
+      tabWalking: 'Camminata',
+      tabWeights: 'Pesi',
+      tabTotal: 'Totale',
+      hLog: 'Registra un giorno',
+      labelDate: 'Data',
+      labelKm: 'Distanza (km)',
+      labelKcal: 'Calorie attive',
+      labelSteps: 'Passi',
+      labelMinutes: 'Minuti',
+      labelExercised: 'Mi sono allenato oggi',
+      labelWhat: 'Cosa ho fatto',
+      phWhat: 'Es: tapis roulant, 4 intervalli di 1 min di corsa',
+      hMeals: 'Pasti',
+      desayuno: 'Colazione',
+      almuerzo: 'Pranzo',
+      merienda: 'Merenda',
+      cena: 'Cena',
+      otros: 'Durante il giorno',
+      phMealsOther: 'Spuntini, cibo fuori orario, bevande',
+      btnSave: 'Salva giorno',
+      btnReset: 'Pulisci',
+      hHist: 'Cronologia',
+      hRoutine: 'Scheda palestra',
+      rtNote: 'Martedì, giovedì e domenica: solo tapis roulant, niente pesi. Giorni di recupero muscolare.',
+      progressionTitle: 'Come progredire',
+      progressionItems: [
+        'Riscaldati per 5-10 minuti sul tapis roulant ed esegui una o due serie leggere del primo esercizio.',
+        'Scegli un peso con cui ti avanzano 2 o 3 ripetizioni di riserva al termine di ogni serie.',
+        'Quando completi tutte le serie al limite massimo del range, aumenta leggermente il peso: 2,5 kg sul bilanciere, 1 o 2 kg sui manubri.',
+        'Sulla panca piana, allenati con uno spotter o con le protezioni di sicurezza. Nello stacco da terra, la tecnica viene sempre prima del peso.',
+        'Se avverti un dolore acuto, interrompi immediatamente l\'esercizio.'
+      ],
+      hLogLift: 'Registra esercizio con peso',
+      labelEquipment: 'Attrezzatura',
+      labelExercise: 'Esercizio',
+      phExercise: 'Scegli dalla lista o scrivi un altro',
+      labelSets: 'Serie',
+      labelReps: 'Ripetizioni',
+      labelKg: 'Peso (kg)',
+      btnAdd: 'Aggiungi',
+      liftHelper: 'Se hai fatto serie con pesi diversi, aggiungi una riga per ciascun peso.',
+      hLiftsByDay: 'Pesi per giorno',
+      hMarks: 'Record personale per esercizio',
+      hWeek: 'Questa settimana',
+      hWalkTotals: 'Camminata e giorni',
+      hLiftTotals: 'Totale pesi',
+      statusWorked: 'Allenato',
+      statusRest: 'Riposo',
+      thDate: 'Data',
+      thStatus: 'Stato',
+      thKm: 'km',
+      thKcal: 'kcal',
+      thSteps: 'Passi',
+      thMin: 'Min',
+      thMeals: 'Pasti',
+      thExercise: 'Esercizio',
+      thBestWeight: 'Miglior peso',
+      thReps: 'Reps',
+      btnEdit: 'Modifica',
+      btnDelete: 'Elimina',
+      btnSure: 'Sicuro?',
+      noMealsLogged: 'Nessun pasto registrato',
+      emptyHist: 'Quando salverai il tuo primo giorno, apparirà qui.',
+      emptyLifts: 'Non hai ancora registrato esercizi con pesi.',
+      emptyMarks: 'I tuoi record personali appariranno qui.',
+      withConnector: 'con',
+      rtRest: 'Oggi niente pesi, solo tapis roulant.',
+      rtToday: 'Oggi tocca a: {name}.',
+      savedDay: 'Salvato: {date}.',
+      editingDay: 'Modifica di {date}. Salva per aggiornare.',
+      missingFields: 'Data o esercizio mancante.',
+      missingSetsReps: 'Inserisci almeno 1 serie e 1 ripetizione.',
+      addedLift: 'Aggiunto: {ex}.',
+      streak1: 'giorno consecutivo',
+      streakN: 'giorni consecutivi',
+      workout1: 'giorno di allenamento',
+      workoutN: 'giorni di allenamento',
+      totalKm: 'km totali',
+      activeKcal: 'kcal attive',
+      steps: 'passi',
+      minutes: 'minuti',
+      mealsLogged1: 'giorno con pasti registrati',
+      mealsLoggedN: 'giorni con pasti registrati',
+      liftDay1: 'giorno con pesi',
+      liftDayN: 'giorni con pesi',
+      sets: 'serie',
+      reps: 'ripetizioni',
+      totalVolume: 'sollevati in totale',
+      distinctEx1: 'esercizio diverso',
+      distinctExN: 'esercizi diversi',
+      maxWeight: 'peso massimo',
+      weekLetters: ['L','M','M','G','V','S','D'],
+      dayNames: ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'],
+      types: { maquina: 'Macchina multifunzione', barra: 'Bilanciere e panca', mancuernas: 'Manubri' },
+      routines: {
+        5: { name: 'Spinta A', sub: 'Petto, spalle e tricipiti' },
+        0: { name: 'Trazione A', sub: 'Schiena e bicipiti, con stacco da terra' },
+        2: { name: 'Spinta B', sub: 'Petto, spalle e tricipiti' },
+        4: { name: 'Trazione B', sub: 'Schiena e bicipiti, con rematore con bilanciere' }
+      },
+      repUnits: { perSide: 'per lato' }
+    }
+  };
+
+  var CATALOG = {
+    maquina: [
+      { key: 'chest_press_mach', es: 'Press de pecho en máquina multifuncional', en: 'Machine chest press', pt: 'Supino na máquina multifuncional', fr: 'Presse pectoraux sur machine', it: 'Distensioni su panca alla macchina' },
+      { key: 'shoulder_press_mach', es: 'Press de hombros en máquina', en: 'Machine shoulder press', pt: 'Desenvolvimento na máquina', fr: 'Presse épaules sur machine', it: 'Shoulder press alla macchina' },
+      { key: 'lat_pulldown', es: 'Jalón al pecho', en: 'Lat pulldown', pt: 'Puxada alta', fr: 'Tirage poitrine', it: 'Lat machine avanti' },
+      { key: 'close_lat_pulldown', es: 'Jalón al pecho agarre cerrado', en: 'Close-grip lat pulldown', pt: 'Puxada alta pegada fechada', fr: 'Tirage poitrine prise serrée', it: 'Lat machine presa stretta' },
+      { key: 'row_mach', es: 'Remo en máquina multifuncional', en: 'Machine row', pt: 'Remada na máquina multifuncional', fr: 'Rowing sur machine', it: 'Rematore alla macchina' },
+      { key: 'pec_deck', es: 'Aperturas en máquina (pec deck)', en: 'Pec deck fly', pt: 'Voador / Peck deck', fr: 'Écarté sur machine (pec deck)', it: 'Pectoral machine (pec deck)' },
+      { key: 'triceps_cable', es: 'Tríceps en polea', en: 'Cable triceps pushdown', pt: 'Tríceps no cabo', fr: 'Extension triceps à la poulie', it: 'Pushdown tricipiti ai cavi' },
+      { key: 'biceps_cable', es: 'Bíceps en polea', en: 'Cable bicep curl', pt: 'Rosca no cabo', fr: 'Curl biceps à la poulie', it: 'Curl bicipiti ai cavi' }
+    ],
+    barra: [
+      { key: 'bench_press', es: 'Press de banca plana', en: 'Flat bench press', pt: 'Supino reto', fr: 'Développé couché', it: 'Panca piana' },
+      { key: 'deadlift', es: 'Peso muerto', en: 'Deadlift', pt: 'Levantamento terra', fr: 'Soulevé de terre', it: 'Stacco da terra' },
+      { key: 'barbell_row', es: 'Remo con barra', en: 'Barbell row', pt: 'Remada com barra', fr: 'Rowing barre', it: 'Rematore con bilanciere' },
+      { key: 'military_press', es: 'Press militar con barra', en: 'Barbell overhead press', pt: 'Desenvolvimento militar com barra', fr: 'Développé militaire barre', it: 'Military press con bilanciere' },
+      { key: 'barbell_curl', es: 'Curl con barra', en: 'Barbell curl', pt: 'Rosca com barra', fr: 'Curl barre', it: 'Curl con bilanciere' }
+    ],
+    mancuernas: [
+      { key: 'db_bench_press', es: 'Press plano con mancuernas', en: 'Flat dumbbell press', pt: 'Supino reto com halteres', fr: 'Développé couché avec haltères', it: 'Distensioni su panca con manubri' },
+      { key: 'db_shoulder_press', es: 'Press de hombros con mancuernas', en: 'Dumbbell shoulder press', pt: 'Desenvolvimento com halteres', fr: 'Développé épaules avec haltères', it: 'Distensioni spalle con manubri' },
+      { key: 'db_row', es: 'Remo con mancuerna', en: 'Dumbbell row', pt: 'Remada com haltere', fr: 'Rowing avec haltère', it: 'Rematore con manubrio' },
+      { key: 'db_lateral_raise', es: 'Elevaciones laterales con mancuernas', en: 'Dumbbell lateral raises', pt: 'Elevações laterais com halteres', fr: 'Élévations latérales avec haltères', it: 'Alzate laterali con manubri' },
+      { key: 'db_rear_delt', es: 'Elevaciones posteriores con mancuernas', en: 'Dumbbell rear delt flyes', pt: 'Elevações posteriores com halteres', fr: 'Élévations postérieures avec haltères', it: 'Alzate posteriori con manubri' },
+      { key: 'db_flyes', es: 'Aperturas con mancuernas', en: 'Dumbbell flyes', pt: 'Crucifixo com halteres', fr: 'Écartés avec haltères', it: 'Croci con manubri' },
+      { key: 'db_curl', es: 'Curl con mancuernas', en: 'Dumbbell curl', pt: 'Rosca com halteres', fr: 'Curl avec haltères', it: 'Curl con manubri' },
+      { key: 'db_triceps_ext', es: 'Extensión de tríceps con mancuerna', en: 'Dumbbell overhead triceps extension', pt: 'Extensão de tríceps com haltere', fr: 'Extension triceps avec haltère', it: 'Estensioni tricipiti con manubrio' },
+      { key: 'db_shrugs', es: 'Encogimientos de hombros con mancuernas', en: 'Dumbbell shrugs', pt: 'Encolhimento de ombros com halteres', fr: 'Shrugs avec haltères', it: 'Scrollate con manubri' }
+    ]
+  };
+
+  var EX_NAME_MAP = {};
+  Object.keys(CATALOG).forEach(function(cat){
+    CATALOG[cat].forEach(function(item){
+      EX_NAME_MAP[item.key] = item;
+    });
+  });
+
+  function getExerciseName(key, lang){
+    var item = EX_NAME_MAP[key];
+    if(item) return item[lang] || item.es;
+    return key;
+  }
+
+  var ROUTINE_DEF = {
+    5: [
+      ['bench_press', '4 × 6-10'],
+      ['chest_press_mach', '3 × 10-12'],
+      ['db_shoulder_press', '3 × 8-12'],
+      ['db_lateral_raise', '3 × 12-15'],
+      ['triceps_cable', '3 × 10-15']
+    ],
+    0: [
+      ['deadlift', '3 × 5'],
+      ['lat_pulldown', '3 × 8-12'],
+      ['db_row', '3 × 10', 'perSide'],
+      ['db_curl', '3 × 10-12'],
+      ['db_shrugs', '3 × 12-15']
+    ],
+    2: [
+      ['db_bench_press', '3 × 8-12'],
+      ['shoulder_press_mach', '3 × 10-12'],
+      ['db_flyes', '3 × 12-15'],
+      ['db_lateral_raise', '3 × 12-15'],
+      ['db_triceps_ext', '3 × 10-12']
+    ],
+    4: [
+      ['barbell_row', '4 × 6-10'],
+      ['row_mach', '3 × 10-12'],
+      ['close_lat_pulldown', '3 × 10-12'],
+      ['barbell_curl', '3 × 8-12'],
+      ['db_rear_delt', '3 × 12-15']
+    ]
+  };
+
+  var ORDER = [5,0,2,4]; // sábado, lunes, miércoles, viernes
+  var MEAL_KEYS = ['desayuno','almuerzo','merienda','cena','otros'];
+  var LS_DAYS = 'cf_days', LS_LIFTS = 'cf_lifts', LS_LANG = 'pulsefit_lang';
+  var days = {}, lifts = {};
+
+  function $(id){ return document.getElementById(id); }
+  function pad(n){ return n<10 ? '0'+n : ''+n; }
+  function iso(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function parse(s){ var p=s.split('-'); return new Date(+p[0], +p[1]-1, +p[2], 12); }
+  function today(){ var d=new Date(); d.setHours(12,0,0,0); return d; }
+  function addDays(d,n){ var x=new Date(d); x.setDate(x.getDate()+n); return x; }
+  function dow(d){ return (d.getDay()+6)%7; } // lunes = 0
+  function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+  function num(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
+  function tile(v,label){ return '<div class="stat"><b>'+v+'</b><span>'+label+'</span></div>'; }
+  function say(id,t,err){ var m=$(id); m.textContent=t||''; m.className='msg'+(err?' err':''); }
+  function did(s){ return !!(days[s] && days[s].exercised); }
+
+  function t(k){
+    var dict = I18N[curLang] || I18N.es;
+    return dict[k] !== undefined ? dict[k] : (I18N.es[k] !== undefined ? I18N.es[k] : k);
+  }
+
+  function fmtDate(s){
+    var loc = LOCALE[curLang] || 'es-ES';
+    return parse(s).toLocaleDateString(loc, {weekday:'short', day:'numeric', month:'short'});
+  }
+
+  function fmt(n,dec){
+    var loc = LOCALE[curLang] || 'es-ES';
+    return (Math.round(n*Math.pow(10,dec))/Math.pow(10,dec)).toLocaleString(loc, {maximumFractionDigits:dec});
+  }
+
+  function getTypeLabel(tipo){
+    var types = (I18N[curLang] || I18N.es).types || {};
+    return types[tipo] || (I18N.es.types || {})[tipo] || tipo;
+  }
+
+  function getRoutineInfo(wd){
+    var dict = (I18N[curLang] || I18N.es).routines || {};
+    return dict[wd] || (I18N.es.routines[wd] || { name: '', sub: '' });
+  }
+
+  function load(key){ try{ var g=JSON.parse(localStorage.getItem(key)||'null'); return g && typeof g==='object' ? g : {}; }catch(e){ return {}; } }
+  function save(key,obj){ try{ localStorage.setItem(key, JSON.stringify(obj)); }catch(e){} }
+
+  function detectLang(){
+    try{
+      var stored = localStorage.getItem(LS_LANG);
+      if(stored && SUPPORTED_LANGS.indexOf(stored)>=0) return stored;
+    }catch(e){}
+    var nav = (navigator.languages && navigator.languages.length ? navigator.languages[0] : (navigator.language || 'es')).toLowerCase();
+    var code = nav.split('-')[0];
+    if(SUPPORTED_LANGS.indexOf(code)>=0) return code;
+    return 'es';
+  }
+
+  function applyLang(lang){
+    if(SUPPORTED_LANGS.indexOf(lang)<0) lang = 'es';
+    curLang = lang;
+    try{ localStorage.setItem(LS_LANG, lang); }catch(e){}
+    document.documentElement.lang = lang;
+    if($('langSelect')) $('langSelect').value = lang;
+
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      var k = el.getAttribute('data-i18n');
+      var val = t(k);
+      if(val) el.textContent = val;
+    });
+
+    document.querySelectorAll('[data-i18n-ph]').forEach(function(el){
+      var k = el.getAttribute('data-i18n-ph');
+      var val = t(k);
+      if(val) el.placeholder = val;
+    });
+
+    var gtype = $('gtype');
+    if(gtype){
+      for(var i=0; i<gtype.options.length; i++){
+        var opt = gtype.options[i];
+        opt.textContent = getTypeLabel(opt.value);
+      }
+    }
+
+    var prog = t('progressionItems');
+    if(Array.isArray(prog) && $('progList')){
+      $('progList').innerHTML = prog.map(function(item){ return '<li>'+esc(item)+'</li>'; }).join('');
+    }
+
+    fillExList();
+    render();
+  }
+
+  /* ---------- caminata ---------- */
+  function renderDays(){
+    var tDay = today(), ts = iso(tDay), keys = Object.keys(days).sort(), i, s;
+
+    // semana actual
+    var monday = addDays(tDay, -dow(tDay)), strip = '', letters = t('weekLetters') || ['L','M','X','J','V','S','D'];
+    for(i=0;i<7;i++){
+      var d = addDays(monday,i); s = iso(d);
+      var on = did(s);
+      strip += '<div class="wd"><div class="dot'+(on?' on':'')+(s===ts?' today':'')+(d>tDay?' future':'')+'">'+(on?'✓':'')+'</div>'+(letters[i]||'')+'</div>';
+    }
+    $('week').innerHTML = strip;
+
+    // racha
+    var streak = 0, c = did(ts) ? tDay : addDays(tDay,-1);
+    while(did(iso(c))){ streak++; c = addDays(c,-1); }
+
+    var all = keys.map(function(k){ return days[k]; });
+    var trained = all.filter(function(r){ return r.exercised; }).length;
+    var km = all.reduce(function(a,r){ return a+num(r.km); },0);
+    var kcal = all.reduce(function(a,r){ return a+num(r.kcal); },0);
+    var steps = all.reduce(function(a,r){ return a+num(r.steps); },0);
+    var mins = all.reduce(function(a,r){ return a+num(r.minutes); },0);
+    var withMeals = all.filter(function(r){ return MEAL_KEYS.some(function(m){ return r[m]; }); }).length;
+
+    $('stats').innerHTML =
+      tile(streak, streak===1 ? t('streak1') : t('streakN')) +
+      tile(trained, trained===1 ? t('workout1') : t('workoutN')) +
+      tile(fmt(km,2), t('totalKm')) +
+      tile(fmt(kcal,0), t('activeKcal')) +
+      tile(fmt(steps,0), t('steps')) +
+      tile(fmt(mins,0), t('minutes')) +
+      tile(withMeals, withMeals===1 ? t('mealsLogged1') : t('mealsLoggedN'));
+
+    // historial
+    if(!keys.length){ $('hist').innerHTML='<p class="empty">'+esc(t('emptyHist'))+'</p>'; return; }
+    var rows = keys.slice().reverse().map(function(k){
+      var r = days[k];
+      var meals = MEAL_KEYS.filter(function(m){ return r[m]; }).map(function(m){ return '<div><b>'+t(m)+':</b> '+esc(r[m])+'</div>'; }).join('');
+      var what = r.entreno ? '<div style="color:var(--muted);font-size:12px;margin-top:4px">'+esc(r.entreno)+'</div>' : '';
+      return '<tr><td>'+esc(fmtDate(k))+what+'</td>'+
+        '<td><span class="tag '+(r.exercised?'yes':'no')+'">'+(r.exercised?t('statusWorked'):t('statusRest'))+'</span></td>'+
+        '<td class="n">'+fmt(num(r.km),2)+'</td><td class="n">'+fmt(num(r.kcal),0)+'</td>'+
+        '<td class="n">'+fmt(num(r.steps),0)+'</td><td class="n">'+fmt(num(r.minutes),0)+'</td>'+
+        '<td class="meals">'+(meals||'<span style="color:var(--muted)">'+t('noMealsLogged')+'</span>')+'</td>'+
+        '<td><button class="link" data-edit="'+k+'" type="button">'+t('btnEdit')+'</button> <button class="link danger" data-del="'+k+'" type="button">'+t('btnDelete')+'</button></td></tr>';
+    }).join('');
+    $('hist').innerHTML = '<table><thead><tr><th>'+t('thDate')+'</th><th>'+t('thStatus')+'</th><th class="n">'+t('thKm')+'</th><th class="n">'+t('thKcal')+'</th><th class="n">'+t('thSteps')+'</th><th class="n">'+t('thMin')+'</th><th>'+t('thMeals')+'</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+
+  var TEXT_IDS = ['entreno','desayuno','almuerzo','merienda','cena','otros'];
+  function clearForm(){
+    $('date').value = iso(today());
+    ['km','kcal','steps','minutes'].concat(TEXT_IDS).forEach(function(id){ $(id).value=''; });
+    $('ex').checked = true; say('msg','');
+  }
+  function fillForm(k){
+    var r = days[k]; if(!r) return;
+    $('date').value = k;
+    ['km','kcal','steps','minutes'].forEach(function(id){ $(id).value = r[id]==null ? '' : r[id]; });
+    TEXT_IDS.forEach(function(id){ $(id).value = r[id] || ''; });
+    $('ex').checked = !!r.exercised;
+    say('msg', t('editingDay').replace('{date}', fmtDate(k)));
+    $('f').scrollIntoView({behavior:'smooth',block:'center'});
+  }
+
+  $('f').addEventListener('submit', function(e){
+    e.preventDefault();
+    var date = $('date').value; if(!date) return;
+    var r = { date:date, exercised:$('ex').checked,
+      km:num($('km').value), kcal:num($('kcal').value), steps:num($('steps').value), minutes:num($('minutes').value) };
+    TEXT_IDS.forEach(function(id){ var v=$(id).value.trim(); if(v) r[id]=v; });
+    days[date] = r; save(LS_DAYS, days); render();
+    say('msg', t('savedDay').replace('{date}', fmtDate(date)));
+  });
+  $('reset').addEventListener('click', clearForm);
+
+  var armed=null, armTimer=null;
+  $('hist').addEventListener('click', function(e){
+    var tgt = e.target;
+    if(tgt.dataset && tgt.dataset.edit){ fillForm(tgt.dataset.edit); return; }
+    if(tgt.dataset && tgt.dataset.del){
+      var k = tgt.dataset.del;
+      if(armed===k){ clearTimeout(armTimer); armed=null; delete days[k]; save(LS_DAYS, days); render(); }
+      else { armed=k; tgt.textContent=t('btnSure'); clearTimeout(armTimer); armTimer=setTimeout(function(){ armed=null; renderDays(); },3000); }
+    }
+  });
+
+  /* ---------- pesas ---------- */
+  function renderRoutine(){
+    var wd = dow(today());
+    var infoToday = getRoutineInfo(wd);
+    var headTemplate = ROUTINE_DEF[wd] ? t('rtToday') : t('rtRest');
+    $('rtHead').textContent = headTemplate.replace('{name}', infoToday.name);
+
+    var dayNames = t('dayNames') || [];
+    $('rtGrid').innerHTML = ORDER.map(function(k){
+      var r = getRoutineInfo(k);
+      var dayTitle = (dayNames[k] || '') + ' · ' + r.name;
+      var items = ROUTINE_DEF[k] || [];
+      var repUnits = t('repUnits') || {};
+      var itemsHtml = items.map(function(it){
+        var exName = getExerciseName(it[0], curLang);
+        var unitSuffix = it[2] && repUnits[it[2]] ? ' ' + repUnits[it[2]] : '';
+        return '<li>' + esc(exName) + ' <span>' + esc(it[1] + unitSuffix) + '</span></li>';
+      }).join('');
+      return '<div class="rt'+(wd===k ? ' today' : '')+'"><h3>'+esc(dayTitle)+'</h3><p class="rt-sub">'+esc(r.sub)+'</p><ul>'+itemsHtml+'</ul></div>';
+    }).join('');
+  }
+
+  function renderLifts(){
+    var box = $('gHist'), marks = $('gMarks');
+    var list = Object.keys(lifts).map(function(id){ return {id:id, v:lifts[id]}; }).filter(function(it){ return it.v; });
+    if(!list.length){
+      box.innerHTML = '<p class="empty">'+esc(t('emptyLifts'))+'</p>';
+      marks.innerHTML = '<p class="empty">'+esc(t('emptyMarks'))+'</p>';
+      return;
+    }
+    list.sort(function(a,b){ return a.v.date<b.v.date ? 1 : a.v.date>b.v.date ? -1 : (a.v.ts||0)-(b.v.ts||0); });
+    var out = '', cur = null;
+    list.forEach(function(it){
+      var v = it.v;
+      if(v.date!==cur){ cur = v.date; out += '<div class="gday"><h3>'+esc(fmtDate(cur))+'</h3></div>'; }
+      out += '<div class="lift"><div class="what">'+esc(v.ejercicio)+' <small>· '+esc(getTypeLabel(v.tipo))+'</small><br>'+
+        fmt(num(v.series),0)+' × '+fmt(num(v.reps),0)+' '+t('withConnector')+' '+fmt(num(v.kg),1)+' kg</div>'+
+        '<button class="link danger" data-ldel="'+esc(it.id)+'" type="button">'+t('btnDelete')+'</button></div>';
+    });
+    box.innerHTML = out;
+
+    var best = {};
+    list.forEach(function(it){
+      var v = it.v, k = String(v.ejercicio).trim().toLowerCase(), b = best[k], kg = num(v.kg);
+      if(!b || kg>b.kg || (kg===b.kg && v.date>b.date)) best[k] = {name:v.ejercicio, kg:kg, reps:num(v.reps), date:v.date};
+    });
+    var rows = Object.keys(best).sort().map(function(k){
+      var b = best[k];
+      return '<tr><td>'+esc(b.name)+'</td><td class="n">'+fmt(b.kg,1)+' kg</td><td class="n">'+fmt(b.reps,0)+'</td><td>'+esc(fmtDate(b.date))+'</td></tr>';
+    }).join('');
+    marks.innerHTML = '<table style="min-width:420px"><thead><tr><th>'+t('thExercise')+'</th><th class="n">'+t('thBestWeight')+'</th><th class="n">'+t('thReps')+'</th><th>'+t('thDate')+'</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+
+  function renderGymTotals(){
+    var dates = {}, names = {}, sets = 0, reps = 0, vol = 0, top = 0;
+    Object.keys(lifts).forEach(function(id){
+      var v = lifts[id]; if(!v) return;
+      var s = num(v.series), r = num(v.reps), k = num(v.kg);
+      dates[v.date] = 1; names[String(v.ejercicio).trim().toLowerCase()] = 1;
+      sets += s; reps += s*r; vol += s*r*k; if(k>top) top = k;
+    });
+    var nd = Object.keys(dates).length, ne = Object.keys(names).length;
+    $('gstats').innerHTML =
+      tile(nd, nd===1 ? t('liftDay1') : t('liftDayN')) +
+      tile(fmt(sets,0), t('sets')) +
+      tile(fmt(reps,0), t('reps')) +
+      tile(fmt(vol,0)+' kg', t('totalVolume')) +
+      tile(ne, ne===1 ? t('distinctEx1') : t('distinctExN')) +
+      tile(fmt(top,1)+' kg', t('maxWeight'));
+  }
+
+  function fillExList(){
+    var list = CATALOG[$('gtype').value] || [];
+    $('gexlist').innerHTML = list.map(function(item){
+      var name = item[curLang] || item.es;
+      return '<option value="'+esc(name)+'">';
+    }).join('');
+  }
+  $('gtype').addEventListener('change', fillExList);
+
+  $('gf').addEventListener('submit', function(e){
+    e.preventDefault();
+    var ex = $('gex').value.trim(), date = $('gdate').value, series = num($('gsets').value), reps = num($('greps').value), kg = num($('gkg').value);
+    if(!date || !ex){ say('gmsg', t('missingFields'), true); return; }
+    if(series<1 || reps<1){ say('gmsg', t('missingSetsReps'), true); return; }
+    var id = date+'-'+Math.random().toString(36).slice(2,8);
+    lifts[id] = {date:date, tipo:$('gtype').value, ejercicio:ex, series:series, reps:reps, kg:kg, ts:Date.now()};
+    save(LS_LIFTS, lifts); render();
+    say('gmsg', t('addedLift').replace('{ex}', ex));
+  });
+
+  var gArmed=null, gTimer=null;
+  $('gHist').addEventListener('click', function(e){
+    var tgt = e.target, id = tgt.dataset && tgt.dataset.ldel;
+    if(!id) return;
+    if(gArmed===id){ clearTimeout(gTimer); gArmed=null; delete lifts[id]; save(LS_LIFTS, lifts); render(); }
+    else { gArmed=id; tgt.textContent=t('btnSure'); clearTimeout(gTimer); gTimer=setTimeout(function(){ gArmed=null; renderLifts(); },3000); }
+  });
+
+  function render(){ renderDays(); renderRoutine(); renderLifts(); renderGymTotals(); }
+
+  /* ---------- pestañas ---------- */
+  var TABS = ['caminata','pesas','total'];
+  function showTab(name){
+    if(TABS.indexOf(name)<0) name = 'caminata';
+    TABS.forEach(function(tName){
+      var on = tName===name, b = $('tab-'+tName);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+      $('panel-'+tName).hidden = !on;
+    });
+  }
+  TABS.forEach(function(tName, i){
+    var b = $('tab-'+tName);
+    b.addEventListener('click', function(){ showTab(tName); try{ location.hash = tName; }catch(e){} });
+    b.addEventListener('keydown', function(e){
+      var j = e.key==='ArrowRight' ? (i+1)%TABS.length : e.key==='ArrowLeft' ? (i+TABS.length-1)%TABS.length : -1;
+      if(j<0) return;
+      e.preventDefault(); showTab(TABS[j]); $('tab-'+TABS[j]).focus();
+      try{ location.hash = TABS[j]; }catch(err){}
+    });
+  });
+  window.addEventListener('hashchange', function(){ showTab(location.hash.replace('#','')); });
+
+  /* ---------- arranque ---------- */
+  days = load(LS_DAYS);
+  lifts = load(LS_LIFTS);
+  showTab(location.hash.replace('#',''));
+  clearForm();
+  $('gdate').value = iso(today());
+
+  var initLang = detectLang();
+  $('langSelect').addEventListener('change', function(e){ applyLang(e.target.value); });
+  applyLang(initLang);
+
+  if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+    window.addEventListener('load', function(){ navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function(){}); });
+  }
+})();
+</script>
+</body>
+</html>

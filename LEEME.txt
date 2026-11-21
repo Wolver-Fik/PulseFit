@@ -1,0 +1,13 @@
+CAMBIO FÍSICO - cómo instalarla como app
+
+Esta carpeta es una web app instalable. Para que el iPhone la deje instalar necesita estar en internet con https, así que primero hay que subirla a un hosting.
+
+1. Subí TODA la carpeta (index.html, manifest.webmanifest, sw.js y los tres íconos) a un hosting gratuito con https, por ejemplo Netlify o GitHub Pages.
+2. Abrí el link que te da el hosting en Safari, en el iPhone.
+3. Tocá el botón Compartir y elegí "Agregar a pantalla de inicio".
+4. Listo: queda con su ícono y se abre a pantalla completa. Después de la primera vez funciona también sin conexión.
+
+Cosas que conviene saber
+- Lo que cargues se guarda en ese iPhone. No se sincroniza con otros dispositivos.
+- Si borrás el ícono de la pantalla de inicio, se borran también los datos guardados.
+- Si más adelante cambiás algún archivo, subí la versión nueva y cambiá "cambio-fisico-v1" por "cambio-fisico-v2" en sw.js, para que los teléfonos se actualicen.

@@ -13,6 +13,73 @@
   function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function today() { var d = new Date(); d.setHours(12, 0, 0, 0); return d; }
 
+  // Fecha local (nunca toISOString(), que desplaza el día según la zona UTC).
+  function todayIso() { return iso(today()); }
+
+  // Acepta solo claves YYYY-MM-DD reales; cualquier otro valor vuelve a hoy.
+  function normalizeDate(value) {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      var p = value.split('-');
+      var y = +p[0], m = +p[1] - 1, dd = +p[2];
+      var d = new Date(y, m, dd, 12, 0, 0, 0);
+      if (d.getFullYear() === y && d.getMonth() === m && d.getDate() === dd) return value;
+    }
+    return todayIso();
+  }
+
+  // Construye registros cuya propiedad `date` es exactamente la fecha elegida.
+  function makeDayRecord(date, data) {
+    var record = {};
+    Object.keys(data || {}).forEach(function (k) { if (k !== 'date') record[k] = data[k]; });
+    record.date = normalizeDate(date);
+    return record;
+  }
+
+  function makeLiftRecord(date, data) {
+    var record = makeDayRecord(date, data);
+    if (record.ts == null) record.ts = Date.now();
+    return record;
+  }
+
+  function saveDay(days, date, data) {
+    var record = makeDayRecord(date, data);
+    days[record.date] = record;
+    saveDays(days);
+    return record;
+  }
+
+  function addLift(lifts, date, data) {
+    var record = makeLiftRecord(date, data);
+    var id = record.date + '-' + Math.random().toString(36).slice(2, 8);
+    lifts[id] = record;
+    saveLifts(lifts);
+    return { id: id, lift: record };
+  }
+
+  function getLiftsByDate(lifts, date) {
+    var key = normalizeDate(date), out = [];
+    Object.keys(lifts || {}).forEach(function (id) {
+      var v = lifts[id];
+      if (v && v.date === key) out.push({ id: id, v: v });
+    });
+    return out.sort(function (a, b) {
+      if (a.v.date !== b.v.date) return a.v.date < b.v.date ? -1 : 1;
+      return (a.v.ts || 0) - (b.v.ts || 0);
+    });
+  }
+
+  // Orden cronológico por fecha real del entrenamiento (claves ISO YYYY-MM-DD).
+  function sortByDateAsc(items, getDate) {
+    return (items || []).slice().sort(function (a, b) {
+      var da = String(getDate ? getDate(a) : ((a && a.date) || ''));
+      var db = String(getDate ? getDate(b) : ((b && b.date) || ''));
+      if (da === db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return da < db ? -1 : 1;
+    });
+  }
+
   function load(key) {
     try {
       var g = JSON.parse(localStorage.getItem(key) || 'null');
@@ -241,6 +308,14 @@
     },
     load: load,
     save: save,
+    todayIso: todayIso,
+    normalizeDate: normalizeDate,
+    makeDayRecord: makeDayRecord,
+    makeLiftRecord: makeLiftRecord,
+    saveDay: saveDay,
+    addLift: addLift,
+    getLiftsByDate: getLiftsByDate,
+    sortByDateAsc: sortByDateAsc,
     loadDays: loadDays,
     saveDays: saveDays,
     loadLifts: loadLifts,

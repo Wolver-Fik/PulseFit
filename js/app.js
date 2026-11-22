@@ -892,6 +892,83 @@
   function say(id, t, err) { var m = $(id); if (m) { m.textContent = t || ''; m.className = 'msg' + (err ? ' err' : ''); } }
   function did(s) { return !!(days[s] && days[s].exercised); }
 
+  /* ---------- fecha de entrenamiento (hoy / días pasados) ---------- */
+  function todayIso() { return Storage.todayIso ? Storage.todayIso() : iso(today()); }
+
+  function currentDate() {
+    var el = $('workoutDate');
+    var value = (el && el.value) ? el.value : todayIso();
+    return Storage.normalizeDate ? Storage.normalizeDate(value) : (value || todayIso());
+  }
+
+  function isPastDate(s) { return !!s && s < todayIso(); }
+
+  function syncDateMirrors(date) {
+    ['date', 'gdate'].forEach(function (id) { var m = $(id); if (m) m.value = date; });
+  }
+
+  function renderSelectedLifts(date) {
+    var box = $('selectedLifts');
+    if (!box) return;
+    var list = (Storage.getLiftsByDate && Storage.getLiftsByDate(lifts, date)) || [];
+    if (!list.length) {
+      box.innerHTML = '<p class="empty">' + esc(t('noLiftsOnDate')) + '</p>';
+      return;
+    }
+    box.innerHTML = list.map(function (it) {
+      var v = it.v;
+      return '<div class="selected-lift"><div class="what">' + esc(v.ejercicio) +
+        ' <small>· ' + esc(getTypeLabel(v.tipo)) + '</small><br>' +
+        fmt(num(v.series), 0) + ' × ' + fmt(num(v.reps), 0) + ' ' + t('withConnector') + ' ' + fmt(num(v.kg), 1) + ' kg</div>' +
+        '<button class="link danger" data-ldel="' + esc(it.id) + '" type="button">' + t('btnDelete') + '</button></div>';
+    }).join('');
+  }
+
+  function updateWorkoutDateUI() {
+    var el = $('workoutDate');
+    if (!el) return;
+    var date = currentDate(), tIso = todayIso(), isToday = (date === tIso);
+    el.max = tIso;
+    if (el.value !== date) el.value = date;
+    syncDateMirrors(date);
+
+    var badge = $('workoutDateBadge');
+    if (badge) {
+      badge.textContent = isToday ? t('btnToday') : fmtDate(date);
+      badge.hidden = false;
+    }
+    var btnToday = $('btnToday');
+    if (btnToday) btnToday.hidden = isToday;
+
+    var notice = $('pastDayNotice');
+    if (notice) {
+      notice.hidden = isToday;
+      notice.className = 'msg past-day-notice';
+      notice.textContent = isToday ? '' : t('editingPastDay').replace('{date}', fmtDate(date));
+    }
+    renderSelectedLifts(date);
+  }
+
+  function setWorkoutDate(date, opts) {
+    opts = opts || {};
+    var el = $('workoutDate');
+    if (!el) return;
+    var value = Storage.normalizeDate ? Storage.normalizeDate(date) : (date || todayIso());
+    if (value > todayIso()) {
+      say('msg', t('futureDateNotAllowed'), true);
+      value = todayIso();
+    }
+    el.value = value;
+    updateWorkoutDateUI();
+    if (opts.load !== false) {
+      if (days[value]) {
+        fillForm(value, { scroll: !!opts.scroll });
+      } else {
+        clearForm(true);
+      }
+    }
+  }
+
   function t(k) {
     var dict = I18N[curLang] || I18N.es;
     return dict[k] !== undefined ? dict[k] : (I18N.es[k] !== undefined ? I18N.es[k] : k);
@@ -1063,7 +1140,7 @@
     var equipName = getCardioEquipmentName(equipId, curLang);
     var protoText = getCardioProtocolText(equipId, goalKey, curLang);
 
-    $('date').value = iso(today());
+    syncDateMirrors(currentDate());
 
     var actSel = $('cardioActivity');
     if (actSel) {
@@ -1225,8 +1302,10 @@
   }
 
   var TEXT_IDS = ['entreno', 'desayuno', 'almuerzo', 'merienda', 'cena', 'otros'];
-  function clearForm() {
-    $('date').value = iso(today());
+  function clearForm(keepDate) {
+    if (!keepDate) setWorkoutDate(todayIso(), { load: false });
+    var date = currentDate();
+    syncDateMirrors(date);
     ['km', 'kcal', 'steps', 'minutes'].concat(TEXT_IDS).forEach(function (id) { $(id).value = ''; });
     $('ex').checked = true;
     if ($('cardioIntensity')) $('cardioIntensity').value = 'moderada';
@@ -1235,9 +1314,14 @@
     }
     say('msg', '');
   }
-  function fillForm(k) {
+  function fillForm(k, opts) {
+    opts = opts || {};
     var r = days[k]; if (!r) return;
-    $('date').value = k;
+    if ($('workoutDate') && currentDate() !== k) {
+      $('workoutDate').value = k;
+      updateWorkoutDateUI();
+    }
+    syncDateMirrors(k);
     ['km', 'kcal', 'steps', 'minutes'].forEach(function (id) { $(id).value = r[id] == null ? '' : r[id]; });
     TEXT_IDS.forEach(function (id) { $(id).value = r[id] || ''; });
     $('ex').checked = !!r.exercised;
@@ -1265,13 +1349,15 @@
         $('cardioActivity').selectedIndex = 0;
       }
     }
-    say('msg', t('editingDay').replace('{date}', fmtDate(k)));
-    $('f').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var msgKey = isPastDate(k) ? 'editingPastDay' : 'editingDay';
+    say('msg', t(msgKey).replace('{date}', fmtDate(k)));
+    if (opts.scroll !== false) $('f').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   $('f').addEventListener('submit', function (e) {
     e.preventDefault();
-    var date = $('date').value; if (!date) return;
+    var date = currentDate(); if (!date) return;
+    syncDateMirrors(date);
     var r = {
       date: date,
       exercised: $('ex').checked,
@@ -1283,16 +1369,25 @@
       minutes: num($('minutes').value)
     };
     TEXT_IDS.forEach(function (id) { var v = $(id).value.trim(); if (v) r[id] = v; });
-    days[date] = r;
-    if (Storage.saveDays) {
-      Storage.saveDays(days);
+    if (Storage.saveDay) {
+      Storage.saveDay(days, date, r);
     } else {
+      days[date] = r;
       save(LS_DAYS, days);
     }
     render();
+    updateWorkoutDateUI();
     say('msg', t('savedDay').replace('{date}', fmtDate(date)));
   });
-  $('reset').addEventListener('click', clearForm);
+
+  $('reset').addEventListener('click', function () { clearForm(); });
+
+  if ($('workoutDate')) {
+    $('workoutDate').addEventListener('change', function () { setWorkoutDate(this.value, { scroll: false }); });
+  }
+  if ($('btnToday')) {
+    $('btnToday').addEventListener('click', function () { setWorkoutDate(todayIso(), { scroll: false }); });
+  }
 
   var armed = null, armTimer = null;
   $('hist').addEventListener('click', function (e) {
@@ -1440,7 +1535,7 @@
   window.prefillExercise = function (key) {
     var name = getExerciseName(key, curLang);
     $('gex').value = name;
-    $('gdate').value = iso(today());
+    syncDateMirrors(currentDate());
     autocompleteLastRecord(name);
     var exObj = EX_NAME_MAP[key];
     if (exObj && exObj.tipo && $('gtype')) $('gtype').value = exObj.tipo;
@@ -1672,24 +1767,39 @@
   $('gex').addEventListener('input', function () { autocompleteLastRecord(this.value); });
   $('gex').addEventListener('change', function () { autocompleteLastRecord(this.value); });
 
-  $('gf').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var ex = $('gex').value.trim(), date = $('gdate').value, series = num($('gsets').value), reps = num($('greps').value), kg = num($('gkg').value);
-    if (ex === t('optCustomExercise')) {
-      say('gmsg', t('missingFields'), true);
-      return;
-    }
-    if (!date || !ex) { say('gmsg', t('missingFields'), true); return; }
-    if (series < 1 || reps < 1) { say('gmsg', t('missingSetsReps'), true); return; }
-    var id = date + '-' + Math.random().toString(36).slice(2, 8);
-    var tipoVal = $('gtype').value;
-    lifts[id] = { date: date, tipo: tipoVal, ejercicio: ex, series: series, reps: reps, kg: kg, ts: Date.now() };
+  function deleteLift(id) {
+    delete lifts[id];
     if (Storage.saveLifts) {
       Storage.saveLifts(lifts);
     } else {
       save(LS_LIFTS, lifts);
     }
     render();
+    updateWorkoutDateUI();
+  }
+
+  $('gf').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var ex = $('gex').value.trim(), date = currentDate(), series = num($('gsets').value), reps = num($('greps').value), kg = num($('gkg').value);
+    syncDateMirrors(date);
+    if (ex === t('optCustomExercise')) {
+      say('gmsg', t('missingFields'), true);
+      return;
+    }
+    if (!date || !ex) { say('gmsg', t('missingFields'), true); return; }
+    if (series < 1 || reps < 1) { say('gmsg', t('missingSetsReps'), true); return; }
+    var payload = { tipo: $('gtype').value, ejercicio: ex, series: series, reps: reps, kg: kg, ts: Date.now() };
+    if (Storage.addLift) {
+      Storage.addLift(lifts, date, payload);
+    } else {
+      var id = date + '-' + Math.random().toString(36).slice(2, 8);
+      var record = { date: date };
+      Object.keys(payload).forEach(function (k) { record[k] = payload[k]; });
+      lifts[id] = record;
+      save(LS_LIFTS, lifts);
+    }
+    render();
+    updateWorkoutDateUI();
     say('gmsg', t('addedLift').replace('{ex}', ex));
     autocompleteLastRecord(ex);
   });
@@ -1701,13 +1811,7 @@
     if (gArmed === id) {
       clearTimeout(gTimer);
       gArmed = null;
-      delete lifts[id];
-      if (Storage.saveLifts) {
-        Storage.saveLifts(lifts);
-      } else {
-        save(LS_LIFTS, lifts);
-      }
-      render();
+      deleteLift(id);
     } else {
       gArmed = id;
       tgt.textContent = t('btnSure');
@@ -1715,6 +1819,23 @@
       gTimer = setTimeout(function () { gArmed = null; renderLifts(); }, 3000);
     }
   });
+
+  if ($('selectedLifts')) {
+    $('selectedLifts').addEventListener('click', function (e) {
+      var tgt = e.target, id = tgt.dataset && tgt.dataset.ldel;
+      if (!id) return;
+      if (gArmed === id) {
+        clearTimeout(gTimer);
+        gArmed = null;
+        deleteLift(id);
+      } else {
+        gArmed = id;
+        tgt.textContent = t('btnSure');
+        clearTimeout(gTimer);
+        gTimer = setTimeout(function () { gArmed = null; renderSelectedLifts(currentDate()); }, 3000);
+      }
+    });
+  }
 
   if ($('cfgGoal')) {
     $('cfgGoal').addEventListener('change', function () {
@@ -1803,6 +1924,7 @@
   }
 
   function render() {
+    updateWorkoutDateUI();
     renderDays();
     renderCardioConfigPanel();
     renderSuggestedCardio();
@@ -2284,8 +2406,10 @@
   };
   window.PulseFit.getDays = function () { return days; };
   window.PulseFit.getLifts = function () { return lifts; };
-  window.PulseFit.setDays = function (d) { days = d; };
-  window.PulseFit.setLifts = function (l) { lifts = l; };
+  window.PulseFit.setDays = function (d) { days = d; window.PulseFit.days = d; };
+  window.PulseFit.setLifts = function (l) { lifts = l; window.PulseFit.lifts = l; };
+  window.PulseFit.getWorkoutDate = currentDate;
+  window.PulseFit.setWorkoutDate = function (d) { setWorkoutDate(d, { scroll: false }); };
   window.PulseFit.setRoutineConfig = function (c) {
     if (c.goal && GOALS[c.goal]) routineConfig.goal = c.goal;
     if (c.split && SPLIT_DAYS[c.split]) routineConfig.split = c.split;
@@ -2318,7 +2442,6 @@
 
   showTab(location.hash.replace('#', ''));
   clearForm();
-  $('gdate').value = iso(today());
 
   var initLang = detectLang();
   $('langSelect').addEventListener('change', function (e) { applyLang(e.target.value); });

@@ -102,6 +102,23 @@ td.meals b{font-weight:600;color:var(--muted)}
 .tag{font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px}
 .tag.yes{background:var(--soft);color:var(--accent)}
 .tag.no{color:var(--muted);border:1px solid var(--line)}
+
+/* Barra de fecha de entrenamiento: registro de hoy y de días pasados */
+.workout-date-bar{display:flex;flex-direction:column;gap:8px;padding:12px 14px}
+.workout-date-main{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
+.workout-date-field{display:flex;flex-direction:column;gap:4px;flex:1 1 170px;max-width:240px;min-width:150px}
+.workout-date-field label{font-size:12px;font-weight:600;color:var(--muted)}
+.workout-date-field input[type=date]{font-size:14px;padding:8px 10px}
+.tag.today{background:var(--soft);color:var(--accent);margin-bottom:9px}
+#btnToday{margin-bottom:9px;padding:7px 12px}
+.past-day-notice{margin:0;font-size:12px;color:var(--accent)}
+.selected-lift{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding:8px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;
+}
+.selected-lift:last-child{border-bottom:0}
+.selected-lift .what{min-width:0;font-size:14px}
+.selected-lift .what small{color:var(--muted)}
 .empty{color:var(--muted);padding:16px 0 4px}
 .rt-head{margin:6px 0 0;color:var(--muted)}
 .rt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:12px}

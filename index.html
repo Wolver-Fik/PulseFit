@@ -56,6 +56,19 @@
     </div>
   </div>
 
+  <!-- Fecha de entrenamiento compartida por cardio y pesas (permite registrar días pasados) -->
+  <section class="panel workout-date-bar" id="workoutDateBar" aria-labelledby="labelWorkoutDate">
+    <div class="workout-date-main">
+      <div class="workout-date-field">
+        <label for="workoutDate" id="labelWorkoutDate" data-i18n="labelWorkoutDate">Fecha del entrenamiento</label>
+        <input type="date" id="workoutDate" required>
+      </div>
+      <span class="tag today" id="workoutDateBadge" hidden>Hoy</span>
+      <button type="button" class="btn-subtle" id="btnToday" data-i18n="btnToday" hidden>Hoy</button>
+    </div>
+    <p class="msg past-day-notice" id="pastDayNotice" data-i18n="editingPastDay" hidden></p>
+  </section>
+
   <div class="tabs" role="tablist" aria-label="Secciones">
     <button class="tab" role="tab" type="button" id="tab-cardio" aria-controls="panel-cardio" aria-selected="true" data-i18n="tabCardio">Cardio</button>
     <button class="tab" role="tab" type="button" id="tab-pesas" aria-controls="panel-pesas" aria-selected="false" tabindex="-1" data-i18n="tabWeights">Pesas</button>
@@ -125,7 +138,7 @@
     <section class="panel" aria-labelledby="h-log">
       <h2 id="h-log" data-i18n="hLog">Registrar sesión de cardio</h2>
       <form id="f">
-        <label for="date"><span data-i18n="labelDate">Fecha</span><input type="date" id="date" required></label>
+        <input type="hidden" id="date">
         <label for="cardioActivity"><span data-i18n="labelCardioActivity">Máquina / Actividad</span><select id="cardioActivity"></select></label>
         <label for="minutes"><span data-i18n="labelCardioMinutes">Duración (min)</span><input type="number" id="minutes" step="1" min="0" inputmode="numeric" required></label>
         <label for="cardioIntensity"><span data-i18n="labelCardioIntensity">Intensidad</span>
@@ -248,7 +261,7 @@
     <section class="panel" aria-labelledby="h-lift">
       <h2 id="h-lift" data-i18n="hLogLift">Registrar ejercicio con peso</h2>
       <form id="gf">
-        <label for="gdate"><span data-i18n="labelDate">Fecha</span><input type="date" id="gdate" required></label>
+        <input type="hidden" id="gdate">
         <label for="gtype"><span data-i18n="labelEquipment">Equipo</span>
           <select id="gtype">
             <option value="maquina">Máquina multifuncional</option>
@@ -270,6 +283,11 @@
         </div>
         <p class="msg wide" id="liftHelper" data-i18n="liftHelper" style="margin:0">Si hiciste series con pesos distintos, agregá una fila por cada peso.</p>
       </form>
+    </section>
+
+    <section class="panel" aria-labelledby="h-selected-lifts">
+      <h2 id="h-selected-lifts" data-i18n="hSelectedLifts">Pesas registradas en esta fecha</h2>
+      <div id="selectedLifts"></div>
     </section>
 
     <section class="panel" aria-labelledby="h-lifthist">

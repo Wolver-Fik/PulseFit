@@ -32,12 +32,29 @@
 
   function fmtDate(s) {
     if (window.PulseFit && window.PulseFit.fmtDate) return window.PulseFit.fmtDate(s);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return '';
     var p = s.split('-');
     var d = new Date(+p[0], +p[1] - 1, +p[2], 12);
     var LOCALE = (window.PulseFit && window.PulseFit.LOCALE) || { es: 'es-ES' };
     var curLang = (window.PulseFit && window.PulseFit.curLang) || 'es';
     var loc = LOCALE[curLang] || 'es-ES';
     return d.toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  // Solo claves YYYY-MM-DD válidas: evita puntos con fechas corruptas o ausentes.
+  function validDateKey(s) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return '';
+    var p = s.split('-');
+    var y = +p[0], m = +p[1] - 1, d = +p[2];
+    var dt = new Date(y, m, d, 12, 0, 0, 0);
+    return (dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d) ? s : '';
+  }
+
+  function sortDateKeys(keys) {
+    if (window.PulseFitStorage && window.PulseFitStorage.sortByDateAsc) {
+      return window.PulseFitStorage.sortByDateAsc(keys, function (k) { return k; });
+    }
+    return (keys || []).slice().sort();
   }
 
   function fmt(n, dec) {
@@ -122,14 +139,16 @@
     var exLifts = liftsByEx[selectedChartEx];
     var maxWeightByDate = {};
     exLifts.forEach(function (lift) {
-      var d = lift.date;
+      var d = validDateKey(lift && lift.date);
+      if (!d) return;
       var w = num(lift.kg);
       if (maxWeightByDate[d] == null || w > maxWeightByDate[d]) {
         maxWeightByDate[d] = w;
       }
     });
 
-    var sortedDates = Object.keys(maxWeightByDate).sort();
+    // Todos los puntos se ordenan por la fecha real del entrenamiento.
+    var sortedDates = sortDateKeys(Object.keys(maxWeightByDate));
     var labels = sortedDates.map(function (d) { return fmtDate(d); });
     var dataPoints = sortedDates.map(function (d) { return maxWeightByDate[d]; });
     var topWeight = dataPoints.reduce(function (a, b) { return Math.max(a, b); }, 0);

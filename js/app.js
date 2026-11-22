@@ -1895,7 +1895,11 @@
       body: t('timerDone') || '¡Descanso terminado!',
       icon: './icons/icon-192.png',
       badge: './icons/icon-192.png',
-      tag: 'pulsefit-rest',
+      silent: false,
+      requireInteraction: true,
+      vibrate: [400, 150, 400, 150, 600],
+      // Tag único: el sistema nunca la toma como actualización de una notificación previa.
+      tag: 'pulsefit-rest-' + Date.now(),
       renotify: true
     };
     var done = false;

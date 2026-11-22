@@ -247,8 +247,19 @@ details li{margin:4px 0}
   0%{transform:scale(1)}
   100%{transform:scale(1.02)}
 }
+/* Respaldo visual de la alarma (especialmente útil en iOS, sin vibración) */
+.rest-timer.timer-flash .timer-card,
+.rest-timer.timer-flash .timer-pill{
+  border-color:var(--accent);
+  animation:timerFlash .5s ease-in-out 6;
+}
+@keyframes timerFlash{
+  0%, 100%{background:var(--surface);box-shadow:0 0 0 0 var(--soft),0 6px 22px rgba(0,0,0,0.14);transform:scale(1)}
+  50%{background:var(--accent);box-shadow:0 0 0 8px var(--soft),0 8px 28px rgba(0,0,0,0.32);transform:scale(1.06)}
+}
 @media (prefers-reduced-motion: reduce){
-  .timer-status, .rest-timer.ringing .timer-card, .rest-timer.ringing .timer-pill{
+  .timer-status, .rest-timer.ringing .timer-card, .rest-timer.ringing .timer-pill,
+  .rest-timer.timer-flash .timer-card, .rest-timer.timer-flash .timer-pill{
     animation:none;
   }
 }

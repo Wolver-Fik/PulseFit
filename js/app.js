@@ -1825,30 +1825,55 @@
   var timerInterval = null;
   var timerTargetEnd = 0;
   var timerRinging = false;
+  var timerFlashTimeout = null;
+
+  // Instancia global de AudioContext. En móviles (sobre todo iOS) el audio
+  // debe crearse y desbloquearse dentro de un gesto del usuario.
   var audioCtx = null;
+  var AudioContextClass = window.AudioContext || window.webkitAudioContext;
 
   function getAudioContext() {
     try {
-      if (!audioCtx) {
-        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) audioCtx = new AudioContextClass();
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(function () {});
-      }
-    } catch (e) {}
+      if (!audioCtx && AudioContextClass) audioCtx = new AudioContextClass();
+    } catch (e) {
+      audioCtx = null;
+    }
     return audioCtx;
   }
 
-  function playTimerBeep() {
+  // Debe llamarse dentro del evento click que inicia el temporizador.
+  // Reproduce un oscilador silencioso de 0.01s para desbloquear el audio.
+  function unlockAudio() {
+    var ctx = getAudioContext();
+    if (!ctx) return;
     try {
-      var ctx = getAudioContext();
-      if (!ctx) return;
+      if (ctx.state === 'suspended' && ctx.resume) {
+        ctx.resume().catch(function () {});
+      }
+      var now = ctx.currentTime;
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.01);
+    } catch (e) {}
+  }
+
+  // Secuencia clara de 3 pitidos cortos: 880Hz, 880Hz y 1174Hz.
+  function playTimerBeep() {
+    var ctx = getAudioContext();
+    if (!ctx) return;
+    try {
+      if (ctx.state === 'suspended' && ctx.resume) {
+        ctx.resume().catch(function () {});
+      }
       var now = ctx.currentTime;
       var notes = [
-        { f: 784, start: 0, dur: 0.13 },
-        { f: 880, start: 0.15, dur: 0.13 },
-        { f: 1046.5, start: 0.30, dur: 0.28 }
+        { f: 880, start: 0, dur: 0.15 },
+        { f: 880, start: 0.25, dur: 0.15 },
+        { f: 1174, start: 0.50, dur: 0.30 }
       ];
       notes.forEach(function (n) {
         var osc = ctx.createOscillator();
@@ -1856,7 +1881,7 @@
         osc.type = 'sine';
         osc.frequency.setValueAtTime(n.f, now + n.start);
         gain.gain.setValueAtTime(0.0001, now + n.start);
-        gain.gain.exponentialRampToValueAtTime(0.22, now + n.start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.6, now + n.start + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + n.start + n.dur);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -1867,11 +1892,25 @@
   }
 
   function triggerTimerVibration() {
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
       try {
-        navigator.vibrate([250, 150, 250, 150, 350]);
+        navigator.vibrate([400, 150, 400, 150, 600]);
       } catch (e) {}
     }
+  }
+
+  // Respaldo visual para iOS, donde Safari no soporta navigator.vibrate.
+  function flashTimerContainer() {
+    var restEl = $('restTimer');
+    if (!restEl) return;
+    restEl.classList.remove('timer-flash');
+    void restEl.offsetWidth; // reinicia la animación si ya estaba activa
+    restEl.classList.add('timer-flash');
+    if (timerFlashTimeout) clearTimeout(timerFlashTimeout);
+    timerFlashTimeout = setTimeout(function () {
+      restEl.classList.remove('timer-flash');
+      timerFlashTimeout = null;
+    }, 3000);
   }
 
   function formatTimeDigits(sec) {
@@ -1924,7 +1963,11 @@
     if (timerRinging) {
       timerRinging = false;
       var restEl = $('restTimer');
-      if (restEl) restEl.classList.remove('ringing');
+      if (restEl) {
+        restEl.classList.remove('ringing');
+        restEl.classList.remove('timer-flash');
+      }
+      if (timerFlashTimeout) { clearTimeout(timerFlashTimeout); timerFlashTimeout = null; }
       var st = $('timerStatus');
       if (st) st.hidden = true;
     }
@@ -1945,11 +1988,12 @@
       updateTimerUI();
       playTimerBeep();
       triggerTimerVibration();
+      flashTimerContainer();
     }
   }
 
   function startTimerWith(sec) {
-    getAudioContext();
+    unlockAudio();
     clearTimerRinging();
     timerPreset = sec;
     timerLeft = sec;
@@ -1961,7 +2005,7 @@
   }
 
   function togglePlayPause() {
-    getAudioContext();
+    unlockAudio();
     clearTimerRinging();
     if (timerRunning) {
       // Pausar
@@ -1984,7 +2028,7 @@
   }
 
   function resetTimer() {
-    getAudioContext();
+    unlockAudio();
     clearTimerRinging();
     timerRunning = false;
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }

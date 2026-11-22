@@ -322,6 +322,7 @@
   var LS_LANG = (Storage.KEYS && Storage.KEYS.LANG) || 'pulsefit_lang';
   var LS_CONFIG = (Storage.KEYS && Storage.KEYS.CONFIG) || 'pulsefit_routine_config';
   var LS_CARDIO_CONFIG = (Storage.KEYS && Storage.KEYS.CARDIO_CONFIG) || 'pulsefit_cardio_config';
+  var LS_NOTIF_ASKED = 'pulsefit_notif_asked';
   var days = {}, lifts = {};
 
   var CARDIO_EQUIPMENT_INFO = [
@@ -1818,12 +1819,137 @@
     }
   }
 
+  /* ---------- notificaciones ---------- */
+  var notifBannerDismissed = false;
+
+  function notificationsSupported() {
+    return typeof window !== 'undefined' && 'Notification' in window;
+  }
+
+  function updateNotifBanner() {
+    var banner = $('notifBanner');
+    if (!banner) return;
+    var show = notificationsSupported() &&
+      Notification.permission === 'default' &&
+      !notifBannerDismissed;
+    banner.hidden = !show;
+  }
+
+  function markNotifAsked() {
+    try { localStorage.setItem(LS_NOTIF_ASKED, '1'); } catch (e) {}
+  }
+
+  function notifAsked() {
+    try { return localStorage.getItem(LS_NOTIF_ASKED) === '1'; } catch (e) { return false; }
+  }
+
+  // Pide permiso dentro de un gesto del usuario (necesario en móviles).
+  function requestNotifPermission() {
+    if (!notificationsSupported()) return Promise.resolve('unsupported');
+    markNotifAsked();
+    return new Promise(function (resolve) {
+      var result;
+      try {
+        // Safari antiguo usa callback; los navegadores modernos devuelven una promesa.
+        result = Notification.requestPermission(function (perm) {
+          updateNotifBanner();
+          resolve(perm);
+        });
+      } catch (e) {
+        updateNotifBanner();
+        resolve('denied');
+        return;
+      }
+      if (result && typeof result.then === 'function') {
+        result.then(function (perm) {
+          updateNotifBanner();
+          resolve(perm);
+        }).catch(function () {
+          updateNotifBanner();
+          resolve('denied');
+        });
+      }
+    });
+  }
+
+  // Solicitud temprana al abrir la PWA: un solo intento automático por dispositivo.
+  // Si el navegador exige un gesto, el banner superior queda visible para hacerlo con un toque.
+  function initNotifications() {
+    updateNotifBanner();
+    if (!notificationsSupported()) return;
+    if (Notification.permission !== 'default') return;
+    if (notifAsked()) return;
+    markNotifAsked();
+    try {
+      var p = Notification.requestPermission();
+      if (p && typeof p.then === 'function') {
+        p.then(function () { updateNotifBanner(); }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+
+  function showRestNotification() {
+    if (!notificationsSupported() || Notification.permission !== 'granted') return;
+    var title = 'PulseFit';
+    var options = {
+      body: t('timerDone') || '¡Descanso terminado!',
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      tag: 'pulsefit-rest',
+      renotify: true
+    };
+    var done = false;
+
+    function fallback() {
+      if (done) return;
+      done = true;
+      try { new Notification(title, options); } catch (e) {}
+    }
+
+    if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+      var guard = setTimeout(fallback, 1500);
+      navigator.serviceWorker.ready.then(function (reg) {
+        if (done) return;
+        if (!reg || !reg.showNotification) {
+          clearTimeout(guard);
+          fallback();
+          return;
+        }
+        reg.showNotification(title, options).then(function () {
+          clearTimeout(guard);
+          done = true;
+        }).catch(function () {
+          clearTimeout(guard);
+          fallback();
+        });
+      }).catch(function () {
+        clearTimeout(guard);
+        fallback();
+      });
+    } else {
+      fallback();
+    }
+  }
+
+  if ($('btnEnableNotifications')) {
+    $('btnEnableNotifications').addEventListener('click', function () {
+      requestNotifPermission().then(function () { updateNotifBanner(); });
+    });
+  }
+
+  if ($('btnNotifDismiss')) {
+    $('btnNotifDismiss').addEventListener('click', function () {
+      notifBannerDismissed = true;
+      updateNotifBanner();
+    });
+  }
+
   /* ---------- temporizador de descanso ---------- */
   var timerPreset = 60;
   var timerLeft = 60;
   var timerRunning = false;
   var timerInterval = null;
-  var timerTargetEnd = 0;
+  var timerEndTime = 0;
   var timerRinging = false;
   var timerFlashTimeout = null;
 
@@ -1975,29 +2101,42 @@
 
   function timerTick() {
     if (!timerRunning) return;
-    var now = Date.now();
-    var rem = Math.max(0, Math.ceil((timerTargetEnd - now) / 1000));
-    if (rem !== timerLeft) {
-      timerLeft = rem;
+    // Precisión por marca de tiempo real: no depende de que el intervalo se ejecute a tiempo.
+    var endTime = timerEndTime;
+    var remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+    if (remaining !== timerLeft) {
+      timerLeft = remaining;
       updateTimerUI();
     }
-    if (rem <= 0) {
-      timerRunning = false;
-      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-      timerRinging = true;
-      updateTimerUI();
-      playTimerBeep();
-      triggerTimerVibration();
-      flashTimerContainer();
+    if (remaining <= 0) {
+      if (timerRunning) finishTimer();
     }
+  }
+
+  function finishTimer() {
+    if (!timerRunning) return;
+    timerRunning = false;
+    timerLeft = 0;
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    timerRinging = true;
+    updateTimerUI();
+    playTimerBeep();
+    triggerTimerVibration();
+    flashTimerContainer();
+    showRestNotification();
   }
 
   function startTimerWith(sec) {
     unlockAudio();
+    // Aprovecha el gesto del usuario para pedir permiso si aún no se decidió.
+    if (notificationsSupported() && Notification.permission === 'default') {
+      requestNotifPermission();
+    }
     clearTimerRinging();
     timerPreset = sec;
     timerLeft = sec;
-    timerTargetEnd = Date.now() + sec * 1000;
+    var endTime = Date.now() + sec * 1000;
+    timerEndTime = endTime;
     timerRunning = true;
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(timerTick, 200);
@@ -2006,11 +2145,14 @@
 
   function togglePlayPause() {
     unlockAudio();
+    if (notificationsSupported() && Notification.permission === 'default') {
+      requestNotifPermission();
+    }
     clearTimerRinging();
     if (timerRunning) {
       // Pausar
       var now = Date.now();
-      timerLeft = Math.max(0, Math.ceil((timerTargetEnd - now) / 1000));
+      timerLeft = Math.max(0, Math.ceil((timerEndTime - now) / 1000));
       timerRunning = false;
       if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
       updateTimerUI();
@@ -2019,7 +2161,7 @@
       if (timerLeft <= 0) {
         timerLeft = timerPreset || 60;
       }
-      timerTargetEnd = Date.now() + timerLeft * 1000;
+      timerEndTime = Date.now() + timerLeft * 1000;
       timerRunning = true;
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(timerTick, 200);
@@ -2064,11 +2206,16 @@
     toggleTimerMinimize(false);
   });
 
-  document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && timerRunning) {
-      timerTick();
-    }
-  });
+  // Al volver a la app (o al mostrarla) recalcula con Date.now() y dispara
+  // la alarma si el tiempo ya se cumplió mientras estaba minimizada o en segundo plano.
+  function syncTimerOnResume() {
+    updateNotifBanner();
+    if (timerRunning) timerTick();
+  }
+
+  document.addEventListener('visibilitychange', syncTimerOnResume);
+  window.addEventListener('pageshow', syncTimerOnResume);
+  window.addEventListener('focus', syncTimerOnResume);
 
   /* ---------- pestañas ---------- */
   var TABS = ['cardio', 'pesas', 'total'];
@@ -2147,6 +2294,7 @@
     saveCardioConfig();
   };
   window.PulseFit.applyLang = applyLang;
+  window.PulseFit.requestNotifPermission = requestNotifPermission;
   window.PulseFit.render = render;
   window.PulseFit.t = t;
   window.PulseFit.say = say;
@@ -2173,6 +2321,13 @@
   applyLang(initLang);
   syncTimerToGoal(routineConfig.goal);
   updateTimerUI();
+
+  // Solicitud temprana de notificaciones al abrir la PWA (init / DOMContentLoaded).
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initNotifications);
+  } else {
+    initNotifications();
+  }
 
   if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     var refreshing = false;

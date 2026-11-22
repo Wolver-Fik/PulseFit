@@ -1,6 +1,6 @@
 ﻿// Guarda la app en el dispositivo para que abra sin conexiÃ³n.
 // Si cambiÃ¡s algÃºn archivo, subÃ­ la versiÃ³n nueva y cambiÃ¡ el nÃºmero de CACHE para que se actualice.
-var CACHE = 'pulsefit-v14';
+var CACHE = 'pulsefit-v15';
 var SHELL = [
   './',
   './index.html',
@@ -114,6 +114,26 @@ self.addEventListener('fetch', function (e) {
         })
         .catch(function () { return hit; });
       return hit || net;
+    })
+  );
+});
+
+// Al tocar la notificación del temporizador, abre o enfoca PulseFit.
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+
+  var targetUrl = './';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
     })
   );
 });

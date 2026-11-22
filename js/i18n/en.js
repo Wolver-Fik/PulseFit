@@ -274,5 +274,9 @@ window.PULSEFIT_I18N.en = {
   timer60s: '60 seconds',
   timer90s: '90 seconds',
   timer120s: '120 seconds',
-  timer150s: '150 seconds'
+  timer150s: '150 seconds',
+  notifTitle: 'Enable notifications',
+  notifDesc: 'We\'ll alert you when rest ends even if you\'re in another app.',
+  notifEnable: 'Enable',
+  notifDismiss: 'Not now'
 };

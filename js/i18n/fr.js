@@ -274,5 +274,9 @@ window.PULSEFIT_I18N.fr = {
   timer60s: '60 secondes',
   timer90s: '90 secondes',
   timer120s: '120 secondes',
-  timer150s: '150 secondes'
+  timer150s: '150 secondes',
+  notifTitle: 'Activez les notifications',
+  notifDesc: 'Nous vous prévenons à la fin du repos, même dans une autre app.',
+  notifEnable: 'Activer',
+  notifDismiss: 'Plus tard'
 };

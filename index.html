@@ -39,6 +39,23 @@
     </div>
   </header>
 
+  <!-- Aviso para habilitar las notificaciones (visible mientras el permiso siga en "default") -->
+  <div id="notifBanner" class="notif-banner" role="status" hidden>
+    <span class="notif-banner-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </span>
+    <div class="notif-banner-text">
+      <strong data-i18n="notifTitle">Activá las notificaciones</strong>
+      <span data-i18n="notifDesc">Te avisamos cuando termine el descanso aunque estés en otra app.</span>
+    </div>
+    <div class="notif-banner-actions">
+      <button type="button" id="btnEnableNotifications" class="notif-enable" data-i18n="notifEnable">Activar</button>
+      <button type="button" id="btnNotifDismiss" class="notif-dismiss" aria-label="Ahora no" data-i18n-aria="notifDismiss">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
   <div class="tabs" role="tablist" aria-label="Secciones">
     <button class="tab" role="tab" type="button" id="tab-cardio" aria-controls="panel-cardio" aria-selected="true" data-i18n="tabCardio">Cardio</button>
     <button class="tab" role="tab" type="button" id="tab-pesas" aria-controls="panel-pesas" aria-selected="false" tabindex="-1" data-i18n="tabWeights">Pesas</button>

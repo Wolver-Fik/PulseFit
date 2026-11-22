@@ -274,5 +274,9 @@ window.PULSEFIT_I18N.de = {
   timer60s: '60 Sekunden',
   timer90s: '90 Sekunden',
   timer120s: '120 Sekunden',
-  timer150s: '150 Sekunden'
+  timer150s: '150 Sekunden',
+  notifTitle: 'Benachrichtigungen aktivieren',
+  notifDesc: 'Wir melden uns am Ende der Pause, auch in einer anderen App.',
+  notifEnable: 'Aktivieren',
+  notifDismiss: 'Nicht jetzt'
 };

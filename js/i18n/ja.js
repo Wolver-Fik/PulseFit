@@ -274,5 +274,9 @@ window.PULSEFIT_I18N.ja = {
   timer60s: '60秒',
   timer90s: '90秒',
   timer120s: '120秒',
-  timer150s: '150秒'
+  timer150s: '150秒',
+  notifTitle: '通知を有効にする',
+  notifDesc: '他のアプリを使っていても休憩終了をお知らせします。',
+  notifEnable: '有効にする',
+  notifDismiss: '後で'
 };

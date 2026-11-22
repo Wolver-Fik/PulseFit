@@ -274,5 +274,9 @@ window.PULSEFIT_I18N.pt = {
   timer60s: '60 segundos',
   timer90s: '90 segundos',
   timer120s: '120 segundos',
-  timer150s: '150 segundos'
+  timer150s: '150 segundos',
+  notifTitle: 'Ative as notificações',
+  notifDesc: 'Avisamos quando o descanso terminar mesmo em outro app.',
+  notifEnable: 'Ativar',
+  notifDismiss: 'Agora não'
 };

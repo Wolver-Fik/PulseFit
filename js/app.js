@@ -1133,6 +1133,146 @@
     ['date', 'gdate'].forEach(function (id) { var m = $(id); if (m) m.value = date; });
   }
 
+  /* ---------- acciones compartidas por los tres historiales ---------- */
+  var ICON_EDIT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  var ICON_DELETE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+
+  // editing = { type: 'day' | 'lift', key: clave en days/lifts, date: ISO }
+  var editing = null;
+  var armedDelete = null, armTimer = null;
+
+  function actionButtons(kind, id, name) {
+    var label = name == null ? '' : String(name);
+    var editLabel = esc(t('btnEdit') + (label ? ' ' + label : ''));
+    var delLabel = esc(t('btnDelete') + (label ? ' ' + label : ''));
+    return '<div class="row-actions">' +
+      '<button type="button" class="icon-btn" data-edit-' + kind + '="' + esc(id) + '" aria-label="' + editLabel + '" title="' + esc(t('btnEdit')) + '">' + ICON_EDIT + '</button>' +
+      '<button type="button" class="icon-btn danger" data-del-' + kind + '="' + esc(id) + '" aria-label="' + delLabel + '" title="' + esc(t('btnDelete')) + '">' + ICON_DELETE + '</button>' +
+      '</div>';
+  }
+
+  function showEditBar(date) {
+    var bar = $('editBar');
+    if (!bar) return;
+    bar.hidden = false;
+    var status = $('editStatus');
+    var d = date || (editing && editing.date);
+    if (status) status.textContent = t('editingSession') + (d ? ': ' + fmtDate(d) : '');
+  }
+
+  function setEditing(next) {
+    editing = next;
+    if (next) showEditBar(next.date);
+    else {
+      var bar = $('editBar');
+      if (bar) bar.hidden = true;
+    }
+  }
+
+  function cancelEdit() {
+    setEditing(null);
+    clearForm();
+    say('msg', '');
+    say('gmsg', '');
+  }
+
+  function editDayRecord(date) {
+    if (!days[date]) return;
+    setEditing({ type: 'day', key: date, date: date });
+    showTab('cardio');
+    setWorkoutDate(date, { load: false, scroll: false });
+    fillForm(date, { scroll: true });
+    say('msg', t('editingSession') + ': ' + fmtDate(date));
+  }
+
+  function editLiftRecord(id) {
+    var v = lifts[id];
+    if (!v) return;
+    var date = /^\d{4}-\d{2}-\d{2}$/.test(v.date || '') ? v.date : todayIso();
+    setEditing({ type: 'lift', key: id, date: date });
+    showTab('pesas');
+    // Carga también el formulario de cardio de esa fecha para mantener ambos
+    // formularios coherentes con #workoutDate.
+    setWorkoutDate(date, { scroll: false });
+
+    if ($('gtype')) $('gtype').value = normalizeLiftGroup(v.tipo || 'mancuernas');
+    var exObj = (v.exerciseKey && EX_NAME_MAP[v.exerciseKey]) ? EX_NAME_MAP[v.exerciseKey] : null;
+    if (!exObj && v.ejercicio) {
+      exObj = EX_NAME_MAP[getCanonicalExerciseKey(v.ejercicio)] || null;
+    }
+    if ($('liftMuscleSelect')) $('liftMuscleSelect').value = exObj ? getLiftMuscleFilter(exObj) : 'all';
+    renderLiftExerciseSelect({ exerciseKey: exObj ? exObj.key : '' });
+    fillExList();
+    if (!exObj) {
+      if ($('liftExerciseSelect')) $('liftExerciseSelect').value = CUSTOM_EXERCISE_VALUE;
+      if ($('gex')) $('gex').value = v.ejercicio || '';
+      updateCustomExerciseVisibility();
+    } else if ($('gex')) {
+      $('gex').value = '';
+    }
+    if ($('gsets')) $('gsets').value = num(v.series) || 1;
+    if ($('greps')) $('greps').value = num(v.reps) || 1;
+    if ($('gkg')) $('gkg').value = v.kg == null ? '' : v.kg;
+    var note = $('gLastRecordNote');
+    if (note) note.style.display = 'none';
+    if ($('gf') && $('gf').scrollIntoView) $('gf').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    say('gmsg', t('editingSession') + ': ' + fmtDate(date));
+  }
+
+  function refreshHistoryViews() {
+    renderDays();
+    renderTotalHistory();
+    renderSelectedLifts(currentDate());
+    renderLifts();
+  }
+
+  function armOrDelete(btn, kind, id) {
+    id = String(id);
+    var same = armedDelete && armedDelete.kind === kind && armedDelete.id === id;
+    if (!same) {
+      armedDelete = { kind: kind, id: id };
+      btn.textContent = t('confirmDelete');
+      btn.classList.add('armed');
+      btn.setAttribute('aria-label', t('confirmDelete'));
+      clearTimeout(armTimer);
+      armTimer = setTimeout(function () { armedDelete = null; refreshHistoryViews(); }, 3000);
+      return;
+    }
+
+    clearTimeout(armTimer);
+    armedDelete = null;
+    var wasEditing = editing && ((kind === 'day' && editing.type === 'day' && editing.key === id) ||
+      (kind === 'lift' && editing.type === 'lift' && editing.key === id));
+    if (kind === 'day') {
+      if (Storage.deleteDay) Storage.deleteDay(days, id);
+      else { delete days[id]; save(LS_DAYS, days); }
+    } else {
+      if (Storage.deleteLift) Storage.deleteLift(lifts, id);
+      else { delete lifts[id]; save(LS_LIFTS, lifts); }
+    }
+    if (wasEditing) {
+      setEditing(null);
+      clearForm();
+    }
+    render();
+  }
+
+  function handleHistoryAction(e) {
+    var btn = e.target && e.target.closest ? e.target.closest('button') : null;
+    if (!btn) return;
+    if (btn.id === 'btnCancelEdit') { cancelEdit(); return; }
+    var editDay = btn.getAttribute('data-edit-day');
+    if (editDay) { editDayRecord(editDay); return; }
+    var delDay = btn.getAttribute('data-del-day');
+    if (delDay) { armOrDelete(btn, 'day', delDay); return; }
+    var editLift = btn.getAttribute('data-edit-lift');
+    if (editLift) { editLiftRecord(editLift); return; }
+    var delLift = btn.getAttribute('data-del-lift');
+    if (delLift) { armOrDelete(btn, 'lift', delLift); }
+  }
+
+  document.addEventListener('click', handleHistoryAction);
+
   function renderSelectedLifts(date) {
     var box = $('selectedLifts');
     if (!box) return;
@@ -1146,7 +1286,7 @@
       return '<div class="selected-lift"><div class="what">' + esc(v.ejercicio) +
         ' <small>· ' + esc(getTypeLabel(v.tipo)) + '</small><br>' +
         fmt(num(v.series), 0) + ' × ' + fmt(num(v.reps), 0) + ' ' + t('withConnector') + ' ' + fmt(num(v.kg), 1) + ' kg</div>' +
-        '<button class="link danger" data-ldel="' + esc(it.id) + '" type="button">' + t('btnDelete') + '</button></div>';
+        actionButtons('lift', it.id, v.ejercicio) + '</div>';
     }).join('');
   }
 
@@ -1346,6 +1486,7 @@
     renderLiftMuscleSelect();
     renderLiftExerciseSelect();
     fillExList();
+    if (editing) showEditBar();
     render();
   }
 
@@ -1545,7 +1686,7 @@
         '<td class="n">' + fmt(num(r.km), 2) + '</td><td class="n">' + fmt(num(r.kcal), 0) + '</td>' +
         '<td class="n">' + fmt(num(r.steps), 0) + '</td><td class="n">' + fmt(num(r.minutes), 0) + '</td>' +
         '<td class="meals">' + (meals || '<span style="color:var(--muted)">' + t('noMealsLogged') + '</span>') + '</td>' +
-        '<td><button class="link" data-edit="' + k + '" type="button">' + t('btnEdit') + '</button> <button class="link danger" data-del="' + k + '" type="button">' + t('btnDelete') + '</button></td></tr>';
+        '<td>' + actionButtons('day', k, fmtDate(k)) + '</td></tr>';
     }).join('');
     $('hist').innerHTML = '<table><thead><tr><th>' + t('thDate') + '</th><th>' + t('thStatus') + '</th><th class="n">' + t('thKm') + '</th><th class="n">' + t('thKcal') + '</th><th class="n">' + t('thSteps') + '</th><th class="n">' + t('thMin') + '</th><th>' + t('thMeals') + '</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
   }
@@ -1562,9 +1703,14 @@
       $('cardioActivity').selectedIndex = 0;
     }
     applyCardioDetailState(null);
+    if ($('gtype') && $('gtype').options.length) $('gtype').selectedIndex = 0;
     if ($('liftMuscleSelect')) $('liftMuscleSelect').value = 'all';
     if ($('gex')) $('gex').value = '';
     renderLiftExerciseSelect({ keepSelection: false });
+    var goalDef = GOALS[routineConfig.goal] || GOALS.hypertrophy;
+    if ($('gsets')) $('gsets').value = goalDef.defaultSets;
+    if ($('greps')) $('greps').value = goalDef.defaultReps;
+    if ($('gkg')) $('gkg').value = '';
     var lastRecordNote = $('gLastRecordNote');
     if (lastRecordNote) lastRecordNote.style.display = 'none';
     say('msg', '');
@@ -1641,12 +1787,25 @@
       if (id === 'entreno') return;
       var v = $(id).value.trim(); if (v) r[id] = v;
     });
-    if (Storage.saveDay) {
+    var wasEditingDay = editing && editing.type === 'day' ? editing.key : null;
+    if (wasEditingDay) {
+      // Actualiza la clave exacta (y la mueve si se cambió la fecha al editar).
+      if (Storage.updateDay) {
+        Storage.updateDay(days, wasEditingDay, date, r);
+      } else {
+        if (wasEditingDay !== date) delete days[wasEditingDay];
+        days[date] = r;
+        save(LS_DAYS, days);
+      }
+    } else if (Storage.saveDay) {
       Storage.saveDay(days, date, r);
     } else {
       days[date] = r;
       save(LS_DAYS, days);
     }
+    if (editing && !wasEditingDay) setEditing(null);
+    if (wasEditingDay) setEditing(null);
+    clearForm(true);
     render();
     updateWorkoutDateUI();
     say('msg', t('savedDay').replace('{date}', fmtDate(date)));
@@ -1661,30 +1820,7 @@
     $('btnToday').addEventListener('click', function () { setWorkoutDate(todayIso(), { scroll: false }); });
   }
 
-  var armed = null, armTimer = null;
-  $('hist').addEventListener('click', function (e) {
-    var tgt = e.target;
-    if (tgt.dataset && tgt.dataset.edit) { fillForm(tgt.dataset.edit); return; }
-    if (tgt.dataset && tgt.dataset.del) {
-      var k = tgt.dataset.del;
-      if (armed === k) {
-        clearTimeout(armTimer);
-        armed = null;
-        delete days[k];
-        if (Storage.saveDays) {
-          Storage.saveDays(days);
-        } else {
-          save(LS_DAYS, days);
-        }
-        render();
-      } else {
-        armed = k;
-        tgt.textContent = t('btnSure');
-        clearTimeout(armTimer);
-        armTimer = setTimeout(function () { armed = null; renderDays(); }, 3000);
-      }
-    }
-  });
+  // Las acciones de historial se delegan en handleHistoryAction (ver arriba).
 
   if ($('cardioCfgGoal')) {
     $('cardioCfgGoal').addEventListener('change', function () {
@@ -1953,7 +2089,7 @@
       if (v.date !== cur) { cur = v.date; out += '<div class="gday"><h3>' + esc(fmtDate(cur)) + '</h3></div>'; }
       out += '<div class="lift"><div class="what">' + esc(v.ejercicio) + ' <small>· ' + esc(getTypeLabel(v.tipo)) + '</small><br>' +
         fmt(num(v.series), 0) + ' × ' + fmt(num(v.reps), 0) + ' ' + t('withConnector') + ' ' + fmt(num(v.kg), 1) + ' kg</div>' +
-        '<button class="link danger" data-ldel="' + esc(it.id) + '" type="button">' + t('btnDelete') + '</button></div>';
+        actionButtons('lift', it.id, v.ejercicio) + '</div>';
     });
     box.innerHTML = out;
 
@@ -1985,6 +2121,58 @@
       tile(fmt(vol, 0) + ' kg', t('totalVolume')) +
       tile(ne, ne === 1 ? t('distinctEx1') : t('distinctExN')) +
       tile(fmt(top, 1) + ' kg', t('maxWeight'));
+  }
+
+  // Historial combinado de la pestaña Total: cada fila lleva sus propias acciones.
+  function renderTotalHistory() {
+    var box = $('allHist');
+    if (!box) return;
+    var rows = [];
+
+    Object.keys(days).forEach(function (date) {
+      var r = days[date];
+      if (!r) return;
+      var parts = [];
+      if (r.activity) parts.push(getCardioEquipmentName(r.activity, curLang));
+      if (r.minutes != null) parts.push(fmt(num(r.minutes), 0) + ' ' + t('minutes'));
+      if (num(r.km)) parts.push(fmt(num(r.km), 2) + ' km');
+      var name = parts.join(' · ') || fmtDate(date);
+      rows.push({
+        date: date,
+        ts: 0,
+        html: '<tr><td>' + esc(fmtDate(date)) + '</td>' +
+          '<td><span class="tag yes">' + esc(t('tabCardio')) + '</span></td>' +
+          '<td>' + esc(name) + '</td>' +
+          '<td>' + actionButtons('day', date, name) + '</td></tr>'
+      });
+    });
+
+    Object.keys(lifts).forEach(function (id) {
+      var v = lifts[id];
+      if (!v) return;
+      var date = /^\d{4}-\d{2}-\d{2}$/.test(v.date || '') ? v.date : todayIso();
+      var name = String(v.ejercicio || '');
+      var detail = fmt(num(v.series), 0) + ' × ' + fmt(num(v.reps), 0) + ' ' + t('withConnector') + ' ' + fmt(num(v.kg), 1) + ' kg';
+      rows.push({
+        date: date,
+        ts: num(v.ts),
+        html: '<tr><td>' + esc(fmtDate(date)) + '</td>' +
+          '<td><span class="tag no">' + esc(t('tabWeights')) + '</span></td>' +
+          '<td>' + esc(name) + ' <small style="color:var(--muted)">· ' + esc(detail) + '</small></td>' +
+          '<td>' + actionButtons('lift', id, name) + '</td></tr>'
+      });
+    });
+
+    if (!rows.length) {
+      box.innerHTML = '<p class="empty">' + esc(t('emptyAllHist')) + '</p>';
+      return;
+    }
+    rows.sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return b.ts - a.ts;
+    });
+    box.innerHTML = '<table><thead><tr><th>' + esc(t('thDate')) + '</th><th>' + esc(t('thSession')) + '</th><th>' + esc(t('labelWhat')) + '</th><th></th></tr></thead><tbody>' +
+      rows.map(function (r) { return r.html; }).join('') + '</tbody></table>';
   }
 
   function autocompleteLastRecord(rawName, opts) {
@@ -2119,17 +2307,6 @@
     $('gex').addEventListener('change', function () { autocompleteLastRecord(this.value); });
   }
 
-  function deleteLift(id) {
-    delete lifts[id];
-    if (Storage.saveLifts) {
-      Storage.saveLifts(lifts);
-    } else {
-      save(LS_LIFTS, lifts);
-    }
-    render();
-    updateWorkoutDateUI();
-  }
-
   $('gf').addEventListener('submit', function (e) {
     e.preventDefault();
     var sel = $('liftExerciseSelect');
@@ -2158,7 +2335,25 @@
       kg: kg,
       ts: Date.now()
     };
-    if (Storage.addLift) {
+    var wasEditingLift = editing && editing.type === 'lift' ? editing.key : null;
+    if (editing && !wasEditingLift) setEditing(null);
+    var savedMsgKey = 'addedLift';
+    if (wasEditingLift) {
+      if (Storage.updateLift) {
+        Storage.updateLift(lifts, wasEditingLift, date, payload);
+      } else {
+        var previous = lifts[wasEditingLift];
+        if (previous) {
+          var edited = { date: date };
+          Object.keys(payload).forEach(function (k) { edited[k] = payload[k]; });
+          edited.ts = previous.ts || Date.now();
+          lifts[wasEditingLift] = edited;
+          save(LS_LIFTS, lifts);
+        }
+      }
+      savedMsgKey = 'updatedLift';
+      setEditing(null);
+    } else if (Storage.addLift) {
       Storage.addLift(lifts, date, payload);
     } else {
       var id = date + '-' + Math.random().toString(36).slice(2, 8);
@@ -2167,44 +2362,14 @@
       lifts[id] = record;
       save(LS_LIFTS, lifts);
     }
+    clearForm(true);
     render();
     updateWorkoutDateUI();
-    say('gmsg', t('addedLift').replace('{ex}', ex));
-    autocompleteLastRecord(ex);
+    say('gmsg', t(savedMsgKey).replace('{ex}', ex));
+    if (!wasEditingLift) autocompleteLastRecord(ex);
   });
 
-  var gArmed = null, gTimer = null;
-  $('gHist').addEventListener('click', function (e) {
-    var tgt = e.target, id = tgt.dataset && tgt.dataset.ldel;
-    if (!id) return;
-    if (gArmed === id) {
-      clearTimeout(gTimer);
-      gArmed = null;
-      deleteLift(id);
-    } else {
-      gArmed = id;
-      tgt.textContent = t('btnSure');
-      clearTimeout(gTimer);
-      gTimer = setTimeout(function () { gArmed = null; renderLifts(); }, 3000);
-    }
-  });
-
-  if ($('selectedLifts')) {
-    $('selectedLifts').addEventListener('click', function (e) {
-      var tgt = e.target, id = tgt.dataset && tgt.dataset.ldel;
-      if (!id) return;
-      if (gArmed === id) {
-        clearTimeout(gTimer);
-        gArmed = null;
-        deleteLift(id);
-      } else {
-        gArmed = id;
-        tgt.textContent = t('btnSure');
-        clearTimeout(gTimer);
-        gTimer = setTimeout(function () { gArmed = null; renderSelectedLifts(currentDate()); }, 3000);
-      }
-    });
-  }
+  // Las filas de pesas (gHist, selectedLifts y Total) usan el delegado global.
 
   if ($('cfgGoal')) {
     $('cfgGoal').addEventListener('change', function () {
@@ -2303,7 +2468,10 @@
     renderRoutine();
     renderLifts();
     renderGymTotals();
-    if (window.PulseFitCharts && window.PulseFitCharts.render) {
+    renderTotalHistory();
+    if (window.PulseFitCharts && window.PulseFitCharts.refresh) {
+      window.PulseFitCharts.refresh();
+    } else if (window.PulseFitCharts && window.PulseFitCharts.render) {
       window.PulseFitCharts.render();
     } else if (typeof renderProgressionChart === 'function') {
       renderProgressionChart();
@@ -2729,7 +2897,9 @@
       }
     });
     if (name === 'total') {
-      if (window.PulseFitCharts && window.PulseFitCharts.render) {
+      if (window.PulseFitCharts && window.PulseFitCharts.refresh) {
+        window.PulseFitCharts.refresh();
+      } else if (window.PulseFitCharts && window.PulseFitCharts.render) {
         window.PulseFitCharts.render();
       } else if (typeof renderProgressionChart === 'function') {
         renderProgressionChart();
@@ -2779,6 +2949,10 @@
   window.PulseFit.setLifts = function (l) { lifts = l; window.PulseFit.lifts = l; };
   window.PulseFit.getWorkoutDate = currentDate;
   window.PulseFit.setWorkoutDate = function (d) { setWorkoutDate(d, { scroll: false }); };
+  window.PulseFit.getEditing = function () { return editing; };
+  window.PulseFit.editDayRecord = editDayRecord;
+  window.PulseFit.editLiftRecord = editLiftRecord;
+  window.PulseFit.cancelEdit = cancelEdit;
   window.PulseFit.setRoutineConfig = function (c) {
     if (c.goal && GOALS[c.goal]) routineConfig.goal = c.goal;
     if (c.split && SPLIT_DAYS[c.split]) routineConfig.split = c.split;

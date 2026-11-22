@@ -82,6 +82,41 @@
     return { id: id, lift: record };
   }
 
+  // Reemplaza exactamente la sesión indicada. Si cambió la fecha, se mueve la
+  // clave antigua para no dejar un duplicado en el historial.
+  function updateDay(days, oldDate, date, data) {
+    var record = makeDayRecord(date, data);
+    if (oldDate && oldDate !== record.date) delete days[oldDate];
+    days[record.date] = record;
+    saveDays(days);
+    return record;
+  }
+
+  function deleteDay(days, date) {
+    if (!Object.prototype.hasOwnProperty.call(days || {}, date)) return false;
+    delete days[date];
+    saveDays(days);
+    return true;
+  }
+
+  // Actualiza una serie concreta conservando su id y su marca de tiempo original.
+  function updateLift(lifts, id, date, data) {
+    if (!lifts || !Object.prototype.hasOwnProperty.call(lifts, id)) return null;
+    var previousTs = lifts[id] && lifts[id].ts;
+    var record = makeLiftRecord(date, data);
+    record.ts = previousTs || record.ts;
+    lifts[id] = record;
+    saveLifts(lifts);
+    return { id: id, lift: record };
+  }
+
+  function deleteLift(lifts, id) {
+    if (!lifts || !Object.prototype.hasOwnProperty.call(lifts, id)) return false;
+    delete lifts[id];
+    saveLifts(lifts);
+    return true;
+  }
+
   function getLiftsByDate(lifts, date) {
     var key = normalizeDate(date), out = [];
     Object.keys(lifts || {}).forEach(function (id) {
@@ -340,7 +375,11 @@
     normalizeCardioDetail: normalizeCardioDetail,
     makeLiftRecord: makeLiftRecord,
     saveDay: saveDay,
+    updateDay: updateDay,
+    deleteDay: deleteDay,
     addLift: addLift,
+    updateLift: updateLift,
+    deleteLift: deleteLift,
     getLiftsByDate: getLiftsByDate,
     sortByDateAsc: sortByDateAsc,
     loadDays: loadDays,

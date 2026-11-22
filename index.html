@@ -67,6 +67,11 @@
       <button type="button" class="btn-subtle" id="btnToday" data-i18n="btnToday" hidden>Hoy</button>
     </div>
     <p class="msg past-day-notice" id="pastDayNotice" data-i18n="editingPastDay" hidden></p>
+    <!-- Modo edición: se muestra al editar una sesión desde cualquier historial -->
+    <div class="edit-bar" id="editBar" role="status" hidden>
+      <strong id="editStatus"></strong>
+      <button type="button" id="btnCancelEdit" data-i18n="cancelEdit">Cancelar edición</button>
+    </div>
   </section>
 
   <div class="tabs" role="tablist" aria-label="Secciones">
@@ -324,6 +329,12 @@
     <section class="panel" aria-labelledby="h-gtot">
       <h2 id="h-gtot" data-i18n="hLiftTotals">Pesas en total</h2>
       <div class="stats" id="gstats"></div>
+    </section>
+
+    <!-- Historial combinado de cardio y pesas con acciones de edición/borrado -->
+    <section class="panel" aria-labelledby="h-all-hist">
+      <h2 id="h-all-hist" data-i18n="hAllHist">Historial de sesiones</h2>
+      <div class="scroll" id="allHist"></div>
     </section>
 
     <section class="panel" aria-labelledby="h-loads">

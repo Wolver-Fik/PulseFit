@@ -260,6 +260,12 @@
     });
   }
 
+  // Se llama después de editar o borrar una serie: vuelve a leer el estado actual
+  // de `lifts`, recalcula el peso máximo por día y descarta puntos que ya no existen.
+  function refresh() {
+    renderProgressionChart();
+  }
+
   function initChartEvents() {
     var sel = $('chartExSelect');
     if (sel) {
@@ -278,6 +284,7 @@
 
   var PulseFitCharts = {
     render: renderProgressionChart,
+    refresh: refresh,
     renderProgressionChart: renderProgressionChart,
     updateChartExerciseSelect: updateChartExerciseSelect,
     getSelectedExercise: function () { return selectedChartEx; },

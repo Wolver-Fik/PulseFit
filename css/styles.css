@@ -138,6 +138,29 @@ details li{margin:4px 0}
 .lift .what{min-width:0}
 .lift .what small{color:var(--muted)}
 
+/* Botones compactos de edición / borrado en todas las vistas del historial */
+.row-actions{display:inline-flex;align-items:center;gap:4px;flex-shrink:0}
+.icon-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:32px;height:32px;padding:0;border:1px solid var(--line);border-radius:8px;
+  background:var(--surface);color:var(--muted);line-height:1;
+}
+.icon-btn:hover{color:var(--accent);border-color:var(--accent);background:var(--soft)}
+.icon-btn.danger:hover{color:var(--bad);border-color:var(--bad)}
+.icon-btn.armed{
+  width:auto;padding:0 8px;font-size:12px;font-weight:600;
+  color:var(--bad);border-color:var(--bad);background:var(--soft);
+}
+
+/* Aviso de "editando sesión" compartido por los formularios de cardio y pesas */
+.edit-bar{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;
+  margin-top:8px;padding:8px 10px;border:1px solid var(--accent);
+  border-radius:8px;background:var(--soft);
+}
+.edit-bar strong{font-size:13px;color:var(--accent)}
+#btnCancelEdit{padding:6px 10px;font-size:12px}
+
 /* Temporizador de descanso flotante */
 .rest-timer{
   position:fixed;

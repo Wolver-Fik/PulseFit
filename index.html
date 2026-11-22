@@ -152,7 +152,10 @@
         <label for="km"><span data-i18n="labelCardioKm">Distancia km (opcional)</span><input type="number" id="km" step="0.01" min="0" inputmode="decimal"></label>
         <label for="kcal"><span data-i18n="labelKcal">Calorías activas</span><input type="number" id="kcal" step="1" min="0" inputmode="numeric"></label>
         <label class="check wide" for="ex"><input type="checkbox" id="ex" checked> <span data-i18n="labelCardioDone">Sesión de cardio completada</span></label>
-        <label class="wide" for="entreno"><span data-i18n="labelCardioNotes">Detalle / Qué hice</span><input type="text" id="entreno" data-i18n-ph="phCardioNotes" placeholder="Ej: ritmo continuo en cinta con 2% de inclinación"></label>
+        <!-- Constructor dinámico: los controles se generan según la máquina elegida -->
+        <div class="wide detail-builder" id="cardioDetailBuilder"></div>
+        <p class="wide detail-preview" id="cardioDetailPreview" hidden></p>
+        <label class="wide" for="entreno"><span data-i18n="labelCardioNotesExtra">Notas extra (opcional)</span><input type="text" id="entreno" data-i18n-ph="phCardioNotesExtra" placeholder="Ej: me sentí bien, sumé 2 min de calentamiento"></label>
         <div class="group wide">
           <h3 data-i18n="hMeals">Comidas</h3>
           <div class="grid">
@@ -264,15 +267,20 @@
         <input type="hidden" id="gdate">
         <label for="gtype"><span data-i18n="labelEquipment">Equipo</span>
           <select id="gtype">
-            <option value="maquina">Máquina multifuncional</option>
-            <option value="barra">Barra y banca</option>
             <option value="mancuernas">Mancuernas</option>
+            <option value="barra">Barra olímpica</option>
             <option value="poleas">Poleas / Cables</option>
+            <option value="maquinas_pierna">Prensa / Máquinas de piernas</option>
+            <option value="maquinas_pecho_hombro">Máquinas de tren superior</option>
             <option value="peso_corporal">Peso corporal</option>
-            <option value="otro">Otro / Personalizado</option>
+            <option value="casa">Equipo en casa</option>
           </select>
         </label>
-        <label class="wide" for="gex"><span data-i18n="labelExercise">Ejercicio</span><input type="text" id="gex" list="gexlist" required data-i18n-ph="phExercise" placeholder="Elegí uno de la lista o escribí otro"><datalist id="gexlist"></datalist></label>
+        <div class="wide exercise-builder">
+          <label for="liftMuscleSelect"><span data-i18n="labelLiftMuscle">Grupo muscular / división</span><select id="liftMuscleSelect"></select></label>
+          <label for="liftExerciseSelect"><span data-i18n="labelExercise">Ejercicio</span><select id="liftExerciseSelect"></select></label>
+          <label for="gex" id="gexCustomWrap" hidden><span data-i18n="labelCustomExercise">Nombre del ejercicio</span><input type="text" id="gex" list="gexlist" data-i18n-ph="phCustomExercise" placeholder="Escribí el nombre del ejercicio"><datalist id="gexlist"></datalist></label>
+        </div>
         <div id="gLastRecordNote" class="wide" style="font-size:12px;color:var(--accent);font-weight:500;margin-top:-6px;display:none"></div>
         <label for="gsets"><span data-i18n="labelSets">Series</span><input type="number" id="gsets" min="1" step="1" inputmode="numeric" value="3"></label>
         <label for="greps"><span data-i18n="labelReps">Repeticiones</span><input type="number" id="greps" min="1" step="1" inputmode="numeric"></label>
@@ -310,6 +318,7 @@
     <section class="panel" aria-labelledby="h-ctot">
       <h2 id="h-ctot" data-i18n="hWalkTotals">Cardio en total</h2>
       <div class="stats" id="stats"></div>
+      <p class="session-detail" id="lastCardioDetail" hidden></p>
     </section>
 
     <section class="panel" aria-labelledby="h-gtot">

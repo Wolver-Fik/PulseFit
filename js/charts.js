@@ -66,6 +66,12 @@
   }
 
   function getCanonicalExerciseKey(rawName) {
+    // Acepta tanto un nombre como el registro completo de la serie: así los
+    // ejercicios elegidos en el menú (exerciseKey) y los personalizados
+    // (ejercicio) caen en la misma clave canónica.
+    if (rawName && typeof rawName === 'object') {
+      rawName = rawName.exerciseKey || rawName.ejercicio || '';
+    }
     if (window.PulseFit && window.PulseFit.getCanonicalExerciseKey) {
       return window.PulseFit.getCanonicalExerciseKey(rawName);
     }
@@ -84,11 +90,14 @@
     }
     sel.disabled = false;
     var EX_NAME_MAP = (window.PulseFit && window.PulseFit.EX_NAME_MAP) || {};
+    var getName = (window.PulseFit && window.PulseFit.getExerciseName) || function (k, lang) {
+      return EX_NAME_MAP[k] ? (EX_NAME_MAP[k][lang] || EX_NAME_MAP[k].es) : k;
+    };
     var curLang = (window.PulseFit && window.PulseFit.curLang) || 'es';
     var LOCALE = (window.PulseFit && window.PulseFit.LOCALE) || { es: 'es-ES' };
 
     var items = distinctKeys.map(function (k) {
-      var name = EX_NAME_MAP[k] ? (EX_NAME_MAP[k][curLang] || EX_NAME_MAP[k].es) : (customDisplayMap[k] || k);
+      var name = EX_NAME_MAP[k] ? getName(k, curLang) : (customDisplayMap[k] || k);
       return { key: k, name: name };
     });
     items.sort(function (a, b) { return a.name.localeCompare(b.name, LOCALE[curLang] || 'es'); });
@@ -114,7 +123,7 @@
     Object.keys(lifts).forEach(function (id) {
       var v = lifts[id];
       if (!v || !v.ejercicio) return;
-      var canKey = getCanonicalExerciseKey(v.ejercicio);
+      var canKey = getCanonicalExerciseKey(v);
       if (!keySet[canKey]) {
         keySet[canKey] = true;
         distinctKeys.push(canKey);

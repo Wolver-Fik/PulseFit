@@ -27,11 +27,37 @@
     return todayIso();
   }
 
+  // Campos del constructor dinámico de cardio que deben sobrevivir a export/import.
+  var CARDIO_DETAIL_FIELDS = {
+    detail: 'entreno',
+    notes: 'notes',
+    state: 'detailFields'
+  };
+
+  function normalizeCardioDetail(record, data) {
+    if (!data) return record;
+    if (Object.prototype.hasOwnProperty.call(data, CARDIO_DETAIL_FIELDS.detail)) {
+      record[CARDIO_DETAIL_FIELDS.detail] = typeof data.entreno === 'string' ? data.entreno : '';
+    }
+    if (Object.prototype.hasOwnProperty.call(data, CARDIO_DETAIL_FIELDS.notes)) {
+      record[CARDIO_DETAIL_FIELDS.notes] = typeof data.notes === 'string' ? data.notes : '';
+    }
+    var state = data[CARDIO_DETAIL_FIELDS.state];
+    if (state && typeof state === 'object') {
+      record[CARDIO_DETAIL_FIELDS.state] = {
+        activity: state.activity || '',
+        values: (state.values && typeof state.values === 'object') ? state.values : {}
+      };
+    }
+    return record;
+  }
+
   // Construye registros cuya propiedad `date` es exactamente la fecha elegida.
   function makeDayRecord(date, data) {
     var record = {};
     Object.keys(data || {}).forEach(function (k) { if (k !== 'date') record[k] = data[k]; });
     record.date = normalizeDate(date);
+    normalizeCardioDetail(record, data);
     return record;
   }
 
@@ -163,7 +189,7 @@
 
       var backupData = {
         app: 'PulseFit',
-        version: 1,
+        version: 2,
         exportDate: iso(today()),
         exportedAt: new Date().toISOString(),
         days: curDays,
@@ -311,6 +337,7 @@
     todayIso: todayIso,
     normalizeDate: normalizeDate,
     makeDayRecord: makeDayRecord,
+    normalizeCardioDetail: normalizeCardioDetail,
     makeLiftRecord: makeLiftRecord,
     saveDay: saveDay,
     addLift: addLift,

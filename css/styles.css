@@ -391,3 +391,33 @@ details[open] .config-summary-arrow{transform:rotate(180deg)}
   background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;
   display:flex;flex-direction:column;gap:6px;
 }
+
+/* Constructor dinámico de detalles de cardio */
+.detail-builder{
+  background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.builder-title{
+  font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--accent);
+}
+.builder-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.detail-field{min-width:0}
+.detail-field select{min-height:44px;cursor:pointer}
+.detail-preview{
+  margin:0;padding:9px 12px;border-radius:8px;background:var(--soft);
+  color:var(--fg);font-size:13px;font-weight:600;line-height:1.4;
+}
+.session-detail{
+  margin:10px 0 0;padding:9px 12px;border-left:3px solid var(--accent);
+  background:var(--bg);border-radius:0 8px 8px 0;font-size:13px;color:var(--muted);
+}
+
+/* Selector inteligente de ejercicios en pesas */
+.exercise-builder{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;
+  padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:8px;
+}
+.exercise-builder select,.exercise-builder input[type=text]{min-height:44px;cursor:pointer}
+@media (max-width:420px){
+  .builder-grid,.exercise-builder{grid-template-columns:1fr}
+}

@@ -36,6 +36,7 @@
     // Hombros
     { key: 'military_press', es: 'Press militar con barra', en: 'Barbell overhead press', pt: 'Desenvolvimento militar com barra', fr: 'Développé militaire barre', it: 'Military press con bilanciere', de: 'Military Press (Langhantel)', ru: 'Армейский жим штанги стоя', ja: 'ミリタリープレス (オーバーヘッドプレス)', muscle: 'hombros', pattern: 'empuje_v', equipment: ['barra'], tipo: 'barra' },
     { key: 'db_shoulder_press', es: 'Press de hombros con mancuernas', en: 'Dumbbell shoulder press', pt: 'Desenvolvimento com halteres', fr: 'Développé épaules avec haltères', it: 'Distensioni spalle con manubri', de: 'Schulterdrücken mit Kurzhanteln', ru: 'Жим гантелей сидя/стоя', ja: 'ダンベルショルダープレス', muscle: 'hombros', pattern: 'empuje_v', equipment: ['mancuernas'], tipo: 'mancuernas' },
+    { key: 'db_military_press', es: 'Press militar con mancuernas', en: 'Dumbbell military press', pt: 'Desenvolvimento militar com halteres', fr: 'Développé militaire avec haltères', it: 'Military press con manubri', de: 'Militärpress mit Kurzhanteln', ru: 'Армейский жим гантелей', ja: 'ダンベルミリタリープレス', muscle: 'hombros', pattern: 'empuje_v', equipment: ['mancuernas'], tipo: 'mancuernas' },
     { key: 'shoulder_press_mach', es: 'Press de hombros en máquina', en: 'Machine shoulder press', pt: 'Desenvolvimento na máquina', fr: 'Presse épaules sur machine', it: 'Shoulder press alla macchina', de: 'Schulterpresse (Maschine)', ru: 'Жим на плечи в тренажере', ja: 'ショルダープレスマシン', muscle: 'hombros', pattern: 'empuje_v', equipment: ['maquinas_pecho_hombro'], tipo: 'maquina' },
     { key: 'db_lateral_raise', es: 'Elevaciones laterales con mancuernas', en: 'Dumbbell lateral raises', pt: 'Elevações laterais com halteres', fr: 'Élévations latérales avec haltères', it: 'Alzate laterali con manubri', de: 'Seitheben mit Kurzhanteln', ru: 'Махи гантелями в стороны', ja: 'サイドレイズ', muscle: 'hombros', pattern: 'aislamiento', equipment: ['mancuernas'], tipo: 'mancuernas' },
     { key: 'db_rear_delt', es: 'Elevaciones posteriores con mancuernas', en: 'Dumbbell rear delt flyes', pt: 'Elevações posteriores com halteres', fr: 'Élévations postérieures com halteres', it: 'Alzate posteriori con manubri', de: 'Vorgebeugtes Seitheben', ru: 'Разведение гантелей в наклоне', ja: 'リアレイズ', muscle: 'hombros', pattern: 'aislamiento', equipment: ['mancuernas'], tipo: 'mancuernas' },
@@ -49,6 +50,7 @@
     { key: 'db_hammer_curl', es: 'Curl martillo con mancuernas', en: 'Dumbbell hammer curl', pt: 'Rosca martelo com halteres', fr: 'Curl marteau avec haltères', it: 'Curl a martello con manubri', de: 'Hammercurls', ru: 'Молотковые сгибания (Молотки)', ja: 'ハンマーカール', muscle: 'biceps', pattern: 'aislamiento', equipment: ['mancuernas'], tipo: 'mancuernas' },
     { key: 'triceps_cable', es: 'Tríceps en polea', en: 'Cable triceps pushdown', pt: 'Tríceps no cabo', fr: 'Extension triceps à la poulie', it: 'Pushdown tricipiti ai cavi', de: 'Trizepsdrücken am Kabelzug', ru: 'Разгибание рук на трицепс в блоке', ja: 'ケーブルトライセプスプッシュダウン', muscle: 'triceps', pattern: 'aislamiento', equipment: ['poleas'], tipo: 'poleas' },
     { key: 'db_triceps_ext', es: 'Extensión de tríceps con mancuerna', en: 'Dumbbell overhead triceps extension', pt: 'Extensão de tríceps com haltere', fr: 'Extension triceps avec haltère', it: 'Estensioni tricipiti con manubrio', de: 'Kurzhantel-Trizepsdrücken über Kopf', ru: 'Французский жим с гантелью из-за головы', ja: 'ダンベルオーバーヘッドトライセプスエクステンション', muscle: 'triceps', pattern: 'aislamiento', equipment: ['mancuernas'], tipo: 'mancuernas' },
+    { key: 'db_triceps_copa', es: 'Extensión de tríceps en copa (mancuerna)', en: 'Cup-grip dumbbell triceps extension', pt: 'Extensão de tríceps em copa (halter)', fr: 'Extension triceps en coupe (haltère)', it: 'Estensione tricipiti a coppa (manubrio)', de: 'Trizepsdrücken im Bechergriff (Kurzhantel)', ru: 'Разгибание трицепса «чашкой» с гантелью', ja: 'カップグリップ・ダンベルトライセプスエクステンション', muscle: 'triceps', pattern: 'aislamiento', equipment: ['mancuernas'], tipo: 'mancuernas' },
     { key: 'bench_dips', es: 'Fondos en banco para tríceps', en: 'Bench dips for triceps', pt: 'Tríceps no banco', fr: 'Dips sur banc pour triceps', it: 'Dip su panca per tricipiti', de: 'Bank-Dips für Trizeps', ru: 'Обратные отжимания от скамьи', ja: 'ベンチディップス', muscle: 'triceps', pattern: 'empuje_v', equipment: ['banco'], tipo: 'peso_corporal' },
 
     // Piernas
@@ -60,8 +62,11 @@
     { key: 'db_lunges', es: 'Zancadas con mancuernas', en: 'Dumbbell lunges', pt: 'Passadas com halteres', fr: 'Fentes avec haltères', it: 'Affondi con manubri', de: 'Ausfallschritte mit Kurzhanteln', ru: 'Выпады с гантелями', ja: 'ダンベルランジ', muscle: 'piernas', pattern: 'sentadilla', equipment: ['mancuernas'], tipo: 'mancuernas', perSide: true },
     { key: 'romanian_deadlift', es: 'Peso muerto rumano con mancuernas', en: 'Dumbbell Romanian deadlift', pt: 'Levantamento terra romeno com halteres', fr: 'Soulevé de terre roumain avec haltères', it: 'Stacco rumeno con manubri', de: 'Rumänisches Kreuzheben mit Kurzhanteln', ru: 'Румынская тяга с гантелями', ja: 'ルーマニアンデッドリフト', muscle: 'piernas', pattern: 'bisagra', equipment: ['mancuernas'], tipo: 'mancuernas' },
     { key: 'bodyweight_squat', es: 'Sentadilla libre (peso corporal)', en: 'Bodyweight squat', pt: 'Agachamento livre', fr: 'Squat poids du corps', it: 'Squat a corpo libero', de: 'Kniebeugen (Körpergewicht)', ru: 'Воздушные приседания (собственный вес)', ja: '自重スクワット', muscle: 'piernas', pattern: 'sentadilla', equipment: ['peso_corporal'], tipo: 'peso_corporal' },
+    { key: 'bulgarian_split_squat', es: 'Sentadilla búlgara', en: 'Bulgarian split squat', pt: 'Agachamento búlgaro', fr: 'Squat bulgare', it: 'Squat bulgaro', de: 'Bulgarische Kniebeugen', ru: 'Болгарские приседания', ja: 'ブルガリアンスクワット', muscle: 'piernas', pattern: 'sentadilla', equipment: ['peso_corporal'], tipo: 'peso_corporal' },
     { key: 'glute_bridge', es: 'Puente de glúteos', en: 'Glute bridge', pt: 'Elevação pélvica', fr: 'Pont de fessiers', it: 'Ponte glutei', de: 'Glute Bridge / Beckenheben', ru: 'Ягодичный мостик', ja: 'グルートブリッジ', muscle: 'piernas', pattern: 'bisagra', equipment: ['peso_corporal'], tipo: 'peso_corporal' },
+    { key: 'barbell_hip_thrust', es: 'Hip thrust con barra', en: 'Barbell hip thrust', pt: 'Hip thrust com barra', fr: 'Hip thrust avec barre', it: 'Hip thrust con bilanciere', de: 'Hip Thrust mit Langhantel', ru: 'Жим бедер со штангой (hip thrust)', ja: 'バーベルヒップスラスト', muscle: 'piernas', pattern: 'bisagra', equipment: ['barra'], tipo: 'barra' },
     { key: 'calf_raises', es: 'Elevación de talones (gemelos)', en: 'Standing calf raises', pt: 'Elevação de panturrilhas', fr: 'Mollets debout', it: 'Calf raise in piedi', de: 'Wadenheben im Stehen', ru: 'Подъемы на носки стоя (икры)', ja: 'スタンディングカーフレイズ', muscle: 'piernas', pattern: 'aislamiento', equipment: ['peso_corporal'], tipo: 'peso_corporal' },
+    { key: 'machine_calf_raise', es: 'Gemelos en máquina', en: 'Machine calf raise', pt: 'Elevação de panturrilhas na máquina', fr: 'Mollets sur machine', it: 'Calf raise alla macchina', de: 'Wadenheben an der Maschine', ru: 'Подъемы на носки в тренажере', ja: 'マシンカーフレイズ', muscle: 'piernas', pattern: 'aislamiento', equipment: ['maquinas_pierna'], tipo: 'maquina' },
 
     // Core
     { key: 'plank', es: 'Plancha abdominal', en: 'Plank', pt: 'Prancha abdominal', fr: 'Gainage planche', it: 'Plank addominale', de: 'Plank / Unterarmstütz', ru: 'Планка', ja: 'プランク', muscle: 'core', pattern: 'core', equipment: ['peso_corporal'], tipo: 'peso_corporal' },
@@ -91,10 +96,60 @@
     });
   });
 
+  // Los catálogos nuevos pueden sobrescribir el nombre desde js/i18n/ (liftExerciseNames).
   function getExerciseName(key, lang) {
+    var dict = I18N[lang] || I18N.es || {};
+    var names = dict.liftExerciseNames || {};
+    if (names[key]) return names[key];
     var item = EX_NAME_MAP[key];
     if (item) return item[lang] || item.es;
     return key;
+  }
+
+  /* ---------- selector inteligente de ejercicios (pesas) ---------- */
+  var LIFT_EQUIP_GROUPS = ['mancuernas', 'barra', 'poleas', 'maquinas_pierna', 'maquinas_pecho_hombro', 'peso_corporal', 'casa'];
+  var LIFT_MUSCLE_FILTERS = ['all', 'pecho', 'espalda', 'hombros', 'brazos', 'piernas', 'core'];
+  var CUSTOM_EXERCISE_VALUE = '__custom__';
+
+  // Un mismo movimiento puede pertenecer a varios grupos (ej.: las mancuernas
+  // también son "equipo en casa"). Así el selector se adapta sin duplicar catálogos.
+  function getExerciseLiftGroups(item) {
+    var groups = [];
+    if (!item) return groups;
+    var eq = item.equipment || [];
+    if (item.tipo === 'mancuernas') groups.push('mancuernas');
+    if (item.tipo === 'barra') groups.push('barra');
+    if (item.tipo === 'poleas') groups.push('poleas');
+    if (item.tipo === 'maquina') {
+      if (eq.indexOf('maquinas_pierna') >= 0) groups.push('maquinas_pierna');
+      if (eq.indexOf('maquinas_pecho_hombro') >= 0 || eq.indexOf('maquina_jalon_remo') >= 0) {
+        groups.push('maquinas_pecho_hombro');
+      }
+    }
+    if (item.tipo === 'peso_corporal') groups.push('peso_corporal');
+    if (item.tipo === 'mancuernas' || item.tipo === 'peso_corporal' || eq.indexOf('banco') >= 0) {
+      groups.push('casa');
+    }
+    return groups;
+  }
+
+  function normalizeLiftGroup(tipo) {
+    if (LIFT_EQUIP_GROUPS.indexOf(tipo) >= 0) return tipo;
+    if (tipo === 'maquina' || tipo === 'maquinas') return 'maquinas_pecho_hombro';
+    if (tipo === 'otro' || tipo === 'all') return 'casa';
+    return 'mancuernas';
+  }
+
+  function getLiftMuscleFilter(item) {
+    if (!item) return 'all';
+    if (item.muscle === 'biceps' || item.muscle === 'triceps') return 'brazos';
+    return LIFT_MUSCLE_FILTERS.indexOf(item.muscle) >= 0 ? item.muscle : 'all';
+  }
+
+  function muscleMatchesFilter(item, filter) {
+    if (!filter || filter === 'all') return true;
+    if (filter === 'brazos') return item.muscle === 'biceps' || item.muscle === 'triceps';
+    return item.muscle === filter;
   }
 
   function getCanonicalExerciseKey(rawName) {
@@ -724,6 +779,56 @@
     }
   };
 
+  /* ---------- constructor dinámico de detalles de cardio ---------- */
+  var CARDIO_DETAIL_GROUP_BY_ACTIVITY = {
+    treadmill: 'treadmill',
+    stationary_bike: 'bike',
+    elliptical: 'level',
+    stairmaster: 'level',
+    rowing_machine: 'rower',
+    outdoor_walk: 'terrain',
+    outdoor_bike: 'terrain',
+    jump_rope: 'terrain',
+    otro: 'terrain'
+  };
+
+  function speedOptions() {
+    var out = [];
+    for (var v = 3; v <= 16; v++) out.push([String(v), v + ' km/h']);
+    return out;
+  }
+
+  var SPEED_OPTIONS = speedOptions();
+
+  // Cada grupo define los controles táctiles que se muestran al elegir una máquina.
+  // `default` es el valor inicial; `requires` oculta el control si no aplica.
+  var CARDIO_DETAIL_FIELDS = {
+    treadmill: [
+      { id: 'cdIncline', options: [['flat', 'cdInclineFlat'], ['low', 'cdInclineLow'], ['mid', 'cdInclineMid'], ['high', 'cdInclineHigh']], 'default': 'low' },
+      { id: 'cdMode', options: [['continuous', 'cdModeContinuous'], ['intervals', 'cdModeIntervals']], 'default': 'continuous' },
+      { id: 'cdSpeedBase', options: SPEED_OPTIONS, 'default': '5' },
+      { id: 'cdSpeedPeak', options: SPEED_OPTIONS, 'default': '10', requires: 'cdMode:intervals' }
+    ],
+    bike: [
+      { id: 'cdResistance', options: [['light', 'cdResLight'], ['moderate', 'cdResModerate'], ['heavy', 'cdResHeavy'], ['climb', 'cdResClimb']], 'default': 'moderate' },
+      { id: 'cdBikeMode', options: [['constant', 'cdBikeModeConstant'], ['intervals', 'cdBikeModeIntervals']], 'default': 'constant' }
+    ],
+    level: [
+      { id: 'cdLevel', options: [['soft', 'cdLevelSoft'], ['moderate', 'cdLevelModerate'], ['intense', 'cdLevelIntense'], ['max', 'cdLevelMax']], 'default': 'moderate' },
+      { id: 'cdRhythm', options: [['constant', 'cdRhythmConstant'], ['intervals', 'cdRhythmIntervals']], 'default': 'constant' }
+    ],
+    rower: [
+      { id: 'cdDamper', options: [['low', 'cdDamper1'], ['mid', 'cdDamper2'], ['high', 'cdDamper3']], 'default': 'mid' },
+      { id: 'cdRowerFocus', options: [['continuous', 'cdRowerContinuous'], ['intervals', 'cdRowerIntervals']], 'default': 'continuous' }
+    ],
+    terrain: [
+      { id: 'cdTerrain', options: [['flat', 'cdTerrainFlat'], ['hill', 'cdTerrainHill'], ['fast', 'cdTerrainFast'], ['easy', 'cdTerrainEasy']], 'default': 'flat' }
+    ]
+  };
+
+  // Guarda la última elección de cada control aunque se cambie de máquina.
+  var detailState = {};
+
   var cardioConfig = {
     goal: 'fat_loss',
     equipment: CARDIO_PRESETS.all.slice()
@@ -754,6 +859,7 @@
   }
 
   function getCardioEquipmentName(id, lang) {
+    if (id === 'otro') return t('optOtherCardio');
     var item = CARDIO_EQUIPMENT_INFO.find(function (it) { return it.id === id; });
     if (item) return t(item.i18nKey);
     return id;
@@ -776,6 +882,126 @@
     var goalProto = equipProto[goalKey] || equipProto.fat_loss;
     if (!goalProto) return '';
     return goalProto[lang] || goalProto.es || '';
+  }
+
+  function getDetailGroup(actId) {
+    return CARDIO_DETAIL_GROUP_BY_ACTIVITY[actId] || 'terrain';
+  }
+
+  function findDetailField(id) {
+    for (var group in CARDIO_DETAIL_FIELDS) {
+      if (!CARDIO_DETAIL_FIELDS.hasOwnProperty(group)) continue;
+      var fields = CARDIO_DETAIL_FIELDS[group];
+      for (var i = 0; i < fields.length; i++) {
+        if (fields[i].id === id) return fields[i];
+      }
+    }
+    return null;
+  }
+
+  function getDetailValue(id) {
+    var el = $(id);
+    if (el && el.value) return el.value;
+    if (detailState[id]) return detailState[id];
+    var field = findDetailField(id);
+    return field ? field['default'] : '';
+  }
+
+  function detailOptionLabel(fieldId, value) {
+    var field = findDetailField(fieldId);
+    if (!field) return '';
+    for (var i = 0; i < field.options.length; i++) {
+      if (field.options[i][0] === value) return field.options[i][1];
+    }
+    return '';
+  }
+
+  function isDetailFieldVisible(field, values) {
+    if (!field.requires) return true;
+    var p = field.requires.split(':');
+    return values[p[0]] === p[1];
+  }
+
+  function renderCardioDetailBuilder() {
+    var box = $('cardioDetailBuilder');
+    if (!box) return;
+    var actId = $('cardioActivity') ? $('cardioActivity').value : '';
+    var group = getDetailGroup(actId);
+    var fields = CARDIO_DETAIL_FIELDS[group] || [];
+    var values = {};
+    fields.forEach(function (f) { values[f.id] = getDetailValue(f.id); });
+
+    var controls = fields.map(function (f) {
+      var opts = f.options.map(function (o) {
+        var isSel = (o[0] === values[f.id]) ? ' selected' : '';
+        var i18n = o[1].indexOf('cd') === 0 ? ' data-i18n="' + esc(o[1]) + '"' : '';
+        return '<option value="' + esc(o[0]) + '"' + i18n + isSel + '>' + esc(t(o[1])) + '</option>';
+      }).join('');
+      var visible = isDetailFieldVisible(f, values);
+      return '<label class="detail-field" id="' + esc(f.id) + 'Field"' + (visible ? '' : ' hidden') + '>' +
+        '<span data-i18n="' + esc(f.id) + '">' + esc(t(f.id)) + '</span>' +
+        '<select id="' + esc(f.id) + '">' + opts + '</select></label>';
+    }).join('');
+
+    box.innerHTML = '<div class="builder-title" data-i18n="cdBuilderTitle">' + esc(t('cdBuilderTitle')) + '</div>' +
+      '<div class="builder-grid">' + controls + '</div>';
+    updateCardioDetailPreview();
+  }
+
+  function collectDetailValues() {
+    var vals = {};
+    var group = getDetailGroup($('cardioActivity') ? $('cardioActivity').value : '');
+    (CARDIO_DETAIL_FIELDS[group] || []).forEach(function (f) {
+      vals[f.id] = getDetailValue(f.id);
+      detailState[f.id] = vals[f.id];
+    });
+    return vals;
+  }
+
+  function composeCardioDetail(actId, values, lang) {
+    var group = getDetailGroup(actId);
+    var name = getCardioEquipmentName(actId, lang);
+    var parts = [];
+    var v = values || {};
+
+    if (group === 'treadmill') {
+      parts.push(t('cdIncline') + ' ' + t(detailOptionLabel('cdIncline', v.cdIncline)));
+      if (v.cdMode === 'intervals') {
+        parts.push(t('cdModeIntervals') + ' ' + v.cdSpeedBase + ' km/h → ' + v.cdSpeedPeak + ' km/h');
+      } else {
+        parts.push(t('cdModeContinuous') + ' ' + v.cdSpeedBase + ' km/h');
+      }
+    } else if (group === 'bike') {
+      parts.push(t('cdResistance') + ' ' + t(detailOptionLabel('cdResistance', v.cdResistance)));
+      parts.push(t(detailOptionLabel('cdBikeMode', v.cdBikeMode)));
+    } else if (group === 'level') {
+      parts.push(t('cdLevel') + ' ' + t(detailOptionLabel('cdLevel', v.cdLevel)));
+      parts.push(t(detailOptionLabel('cdRhythm', v.cdRhythm)));
+    } else if (group === 'rower') {
+      parts.push(t('cdDamper') + ' ' + t(detailOptionLabel('cdDamper', v.cdDamper)));
+      parts.push(t(detailOptionLabel('cdRowerFocus', v.cdRowerFocus)));
+    } else {
+      parts.push(t('cdTerrain') + ' ' + t(detailOptionLabel('cdTerrain', v.cdTerrain)));
+    }
+
+    return name + ': ' + parts.filter(Boolean).join(' · ');
+  }
+
+  function updateCardioDetailPreview() {
+    var preview = $('cardioDetailPreview');
+    if (!preview) return;
+    var actSel = $('cardioActivity');
+    if (!actSel || !actSel.value) { preview.hidden = true; return; }
+    preview.textContent = composeCardioDetail(actSel.value, collectDetailValues(), curLang);
+    preview.hidden = false;
+  }
+
+  function applyCardioDetailState(state) {
+    detailState = {};
+    if (state && state.values && typeof state.values === 'object') {
+      Object.keys(state.values).forEach(function (k) { detailState[k] = state.values[k]; });
+    }
+    renderCardioDetailBuilder();
   }
 
   var routineConfig = {
@@ -1034,6 +1260,12 @@
       if (val) el.placeholder = val;
     });
 
+    // Opciones generadas dinámicamente (constructor de cardio, etc.).
+    document.querySelectorAll('option[data-i18n]').forEach(function (opt) {
+      var val = t(opt.getAttribute('data-i18n'));
+      if (val) opt.textContent = val;
+    });
+
     var gtype = $('gtype');
     if (gtype) {
       for (var i = 0; i < gtype.options.length; i++) {
@@ -1110,6 +1342,9 @@
 
     if (typeof updateTimerLabels === 'function') updateTimerLabels();
 
+    renderCardioDetailBuilder();
+    renderLiftMuscleSelect();
+    renderLiftExerciseSelect();
     fillExList();
     render();
   }
@@ -1138,7 +1373,6 @@
     var goalKey = cardioConfig.goal;
     var goalDef = CARDIO_GOALS[goalKey] || CARDIO_GOALS.fat_loss;
     var equipName = getCardioEquipmentName(equipId, curLang);
-    var protoText = getCardioProtocolText(equipId, goalKey, curLang);
 
     syncDateMirrors(currentDate());
 
@@ -1166,9 +1400,9 @@
       $('steps').value = goalDef.defaultSteps || '';
     }
     if ($('ex')) $('ex').checked = true;
-    if ($('entreno')) {
-      $('entreno').value = equipName + ' - ' + protoText;
-    }
+    // El detalle se construye solo con los selectores; las notas quedan libres.
+    applyCardioDetailState(null);
+    if ($('entreno')) $('entreno').value = '';
 
     showTab('cardio');
     var f = $('f');
@@ -1276,6 +1510,21 @@
       tile(fmt(mins, 0), t('cardioMinutes')) +
       tile(withMeals, withMeals === 1 ? t('mealsLogged1') : t('mealsLoggedN'));
 
+    var lastDetailEl = $('lastCardioDetail');
+    if (lastDetailEl) {
+      var lastRecord = null;
+      for (var li = keys.length - 1; li >= 0; li--) {
+        if (days[keys[li]].entreno) { lastRecord = days[keys[li]]; break; }
+      }
+      if (lastRecord) {
+        lastDetailEl.textContent = t('cdLastSession') + ': ' + lastRecord.entreno;
+        lastDetailEl.hidden = false;
+      } else {
+        lastDetailEl.textContent = '';
+        lastDetailEl.hidden = true;
+      }
+    }
+
     // historial
     if (!keys.length) { $('hist').innerHTML = '<p class="empty">' + esc(t('emptyHist')) + '</p>'; return; }
     var rows = keys.slice().reverse().map(function (k) {
@@ -1312,6 +1561,12 @@
     if ($('cardioActivity') && $('cardioActivity').options.length) {
       $('cardioActivity').selectedIndex = 0;
     }
+    applyCardioDetailState(null);
+    if ($('liftMuscleSelect')) $('liftMuscleSelect').value = 'all';
+    if ($('gex')) $('gex').value = '';
+    renderLiftExerciseSelect({ keepSelection: false });
+    var lastRecordNote = $('gLastRecordNote');
+    if (lastRecordNote) lastRecordNote.style.display = 'none';
     say('msg', '');
   }
   function fillForm(k, opts) {
@@ -1323,7 +1578,11 @@
     }
     syncDateMirrors(k);
     ['km', 'kcal', 'steps', 'minutes'].forEach(function (id) { $(id).value = r[id] == null ? '' : r[id]; });
-    TEXT_IDS.forEach(function (id) { $(id).value = r[id] || ''; });
+    TEXT_IDS.forEach(function (id) {
+      // `entreno` guarda el detalle compuesto; las notas van en `notes`.
+      // Los registros antiguos sin `notes` mantienen su texto libre como nota.
+      $(id).value = id === 'entreno' ? (r.notes != null ? r.notes : (r.entreno || '')) : (r[id] || '');
+    });
     $('ex').checked = !!r.exercised;
     if ($('cardioIntensity')) {
       $('cardioIntensity').value = r.intensity || 'moderada';
@@ -1349,6 +1608,7 @@
         $('cardioActivity').selectedIndex = 0;
       }
     }
+    applyCardioDetailState(r.detailFields || null);
     var msgKey = isPastDate(k) ? 'editingPastDay' : 'editingDay';
     say('msg', t(msgKey).replace('{date}', fmtDate(k)));
     if (opts.scroll !== false) $('f').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1358,17 +1618,29 @@
     e.preventDefault();
     var date = currentDate(); if (!date) return;
     syncDateMirrors(date);
+    var actId = $('cardioActivity') ? $('cardioActivity').value : '';
+    var detailValues = collectDetailValues();
+    var detailText = actId ? composeCardioDetail(actId, detailValues, curLang) : '';
+    var notes = $('entreno') ? $('entreno').value.trim() : '';
     var r = {
       date: date,
       exercised: $('ex').checked,
-      activity: $('cardioActivity') ? $('cardioActivity').value : '',
+      activity: actId,
       intensity: $('cardioIntensity') ? $('cardioIntensity').value : 'moderada',
       km: num($('km').value),
       kcal: num($('kcal').value),
       steps: num($('steps').value),
-      minutes: num($('minutes').value)
+      minutes: num($('minutes').value),
+      // El detalle compuesto se guarda en `entreno` para que historial y
+      // estadísticas lo muestren sin cambios; `notes` conserva el texto extra.
+      detailFields: { activity: actId, values: detailValues },
+      entreno: detailText + (notes ? (detailText ? ' · ' : '') + notes : '')
     };
-    TEXT_IDS.forEach(function (id) { var v = $(id).value.trim(); if (v) r[id] = v; });
+    if (notes) r.notes = notes;
+    TEXT_IDS.forEach(function (id) {
+      if (id === 'entreno') return;
+      var v = $(id).value.trim(); if (v) r[id] = v;
+    });
     if (Storage.saveDay) {
       Storage.saveDay(days, date, r);
     } else {
@@ -1476,14 +1748,22 @@
 
   if ($('cardioActivity')) {
     $('cardioActivity').addEventListener('change', function () {
-      var val = this.value;
-      if (val && val !== 'otro') {
-        var protoText = getCardioProtocolText(val, cardioConfig.goal, curLang);
-        var equipName = getCardioEquipmentName(val, curLang);
-        if (protoText && (!($('entreno').value) || $('entreno').value.indexOf(' - ') >= 0)) {
-          $('entreno').value = equipName + ' - ' + protoText;
-        }
-      }
+      renderCardioDetailBuilder();
+    });
+  }
+
+  if ($('cardioDetailBuilder')) {
+    $('cardioDetailBuilder').addEventListener('change', function (e) {
+      var sel = e.target;
+      if (!sel || !sel.id || sel.tagName !== 'SELECT') return;
+      detailState[sel.id] = sel.value;
+      var values = collectDetailValues();
+      var group = getDetailGroup($('cardioActivity') ? $('cardioActivity').value : '');
+      (CARDIO_DETAIL_FIELDS[group] || []).forEach(function (f) {
+        var fieldEl = $(f.id + 'Field');
+        if (fieldEl) fieldEl.hidden = !isDetailFieldVisible(f, values);
+      });
+      updateCardioDetailPreview();
     });
   }
 
@@ -1533,12 +1813,22 @@
   }
 
   window.prefillExercise = function (key) {
-    var name = getExerciseName(key, curLang);
-    $('gex').value = name;
-    syncDateMirrors(currentDate());
-    autocompleteLastRecord(name);
     var exObj = EX_NAME_MAP[key];
-    if (exObj && exObj.tipo && $('gtype')) $('gtype').value = exObj.tipo;
+    var name = getExerciseName(key, curLang);
+    if (!exObj) {
+      if ($('liftExerciseSelect')) $('liftExerciseSelect').value = CUSTOM_EXERCISE_VALUE;
+      if ($('gex')) $('gex').value = name;
+      updateCustomExerciseVisibility();
+    } else {
+      var groups = getExerciseLiftGroups(exObj);
+      if ($('gtype')) $('gtype').value = groups[0] || 'casa';
+      if ($('liftMuscleSelect')) $('liftMuscleSelect').value = getLiftMuscleFilter(exObj);
+      renderLiftExerciseSelect({ exerciseKey: key, keepSelection: false });
+      if ($('gex')) $('gex').value = '';
+      updateCustomExerciseVisibility();
+    }
+    syncDateMirrors(currentDate());
+    autocompleteLastRecord(name, { keepEquipment: true });
     showTab('pesas');
     var gf = $('gf');
     if (gf) gf.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1697,13 +1987,14 @@
       tile(fmt(top, 1) + ' kg', t('maxWeight'));
   }
 
-  function autocompleteLastRecord(rawName) {
+  function autocompleteLastRecord(rawName, opts) {
+    opts = opts || {};
     var noteEl = $('gLastRecordNote');
     if (!rawName) {
       if (noteEl) noteEl.style.display = 'none';
       return;
     }
-    if (rawName === t('optCustomExercise')) {
+    if (rawName === t('optCustomExercise') || rawName === t('optOtherExercise')) {
       $('gex').value = '';
       if (noteEl) noteEl.style.display = 'none';
       return;
@@ -1726,7 +2017,8 @@
       if (last.kg != null) $('gkg').value = last.kg;
       if (last.reps != null) $('greps').value = last.reps;
       if (last.series != null) $('gsets').value = last.series;
-      if (last.tipo && $('gtype')) $('gtype').value = last.tipo;
+      // Si el ejercicio viene del menú, el equipo ya está elegido: no lo pisamos.
+      if (!opts.keepEquipment && last.tipo && $('gtype')) $('gtype').value = normalizeLiftGroup(last.tipo);
       if (noteEl) {
         var hint = t('lastRecordHint')
           .replace('{sets}', last.series)
@@ -1744,28 +2036,88 @@
     }
   }
 
-  function fillExList() {
-    var typeFilter = $('gtype') ? $('gtype').value : 'all';
-    var filtered = ALL_EXERCISES.filter(function (item) {
-      var matchesEquip = isExerciseAvailable(item.key, routineConfig.equipment);
-      if (!matchesEquip) return false;
-      if (typeFilter && typeFilter !== 'all' && typeFilter !== 'otro') {
-        return item.tipo === typeFilter;
-      }
-      return true;
-    });
-
-    var options = filtered.map(function (item) {
-      var name = item[curLang] || item.es;
-      return '<option value="' + esc(name) + '">';
-    });
-    options.push('<option value="' + esc(t('optCustomExercise')) + '">');
-    $('gexlist').innerHTML = options.join('');
+  function renderLiftMuscleSelect() {
+    var sel = $('liftMuscleSelect');
+    if (!sel) return;
+    var prev = sel.value || 'all';
+    sel.innerHTML = LIFT_MUSCLE_FILTERS.map(function (m) {
+      var label = m === 'all' ? t('liftMuscleAll') : (m === 'brazos' ? t('liftMuscleBrazos') : getMuscleName(m));
+      return '<option value="' + esc(m) + '">' + esc(label) + '</option>';
+    }).join('');
+    sel.value = prev;
   }
 
-  $('gtype').addEventListener('change', fillExList);
-  $('gex').addEventListener('input', function () { autocompleteLastRecord(this.value); });
-  $('gex').addEventListener('change', function () { autocompleteLastRecord(this.value); });
+  function renderLiftExerciseSelect(opts) {
+    opts = opts || {};
+    var sel = $('liftExerciseSelect');
+    if (!sel) return;
+    var equip = normalizeLiftGroup($('gtype') ? $('gtype').value : 'mancuernas');
+    var muscle = $('liftMuscleSelect') ? $('liftMuscleSelect').value : 'all';
+    var filtered = ALL_EXERCISES.filter(function (item) {
+      return getExerciseLiftGroups(item).indexOf(equip) >= 0 && muscleMatchesFilter(item, muscle);
+    });
+
+    var prev = sel.value;
+    var html = '<option value="">' + esc(t('optSelectExercise')) + '</option>';
+    filtered.forEach(function (item) {
+      html += '<option value="' + esc(item.key) + '">' + esc(getExerciseName(item.key, curLang)) + '</option>';
+    });
+    html += '<option value="' + CUSTOM_EXERCISE_VALUE + '">' + esc(t('optOtherExercise')) + '</option>';
+    sel.innerHTML = html;
+
+    var chosen = opts.exerciseKey || (opts.keepSelection === false ? '' : prev);
+    if (chosen && chosen !== CUSTOM_EXERCISE_VALUE && !filtered.some(function (it) { return it.key === chosen; })) {
+      chosen = '';
+    }
+    sel.value = chosen;
+    updateCustomExerciseVisibility();
+  }
+
+  function updateCustomExerciseVisibility() {
+    var sel = $('liftExerciseSelect'), wrap = $('gexCustomWrap');
+    if (!sel || !wrap) return;
+    wrap.hidden = sel.value !== CUSTOM_EXERCISE_VALUE;
+  }
+
+  // Sugerencias del campo libre: solo aparece cuando se elige "+ Otro ejercicio".
+  function fillExList() {
+    var list = $('gexlist');
+    if (!list) return;
+    var equip = normalizeLiftGroup($('gtype') ? $('gtype').value : 'mancuernas');
+    var filtered = ALL_EXERCISES.filter(function (item) {
+      return getExerciseLiftGroups(item).indexOf(equip) >= 0 && isExerciseAvailable(item.key, routineConfig.equipment);
+    });
+    list.innerHTML = filtered.map(function (item) {
+      return '<option value="' + esc(getExerciseName(item.key, curLang)) + '"></option>';
+    }).join('');
+  }
+
+  if ($('gtype')) {
+    $('gtype').addEventListener('change', function () {
+      renderLiftExerciseSelect({ keepSelection: false });
+      fillExList();
+    });
+  }
+  if ($('liftMuscleSelect')) {
+    $('liftMuscleSelect').addEventListener('change', function () {
+      renderLiftExerciseSelect({ keepSelection: false });
+    });
+  }
+  if ($('liftExerciseSelect')) {
+    $('liftExerciseSelect').addEventListener('change', function () {
+      updateCustomExerciseVisibility();
+      if (this.value && this.value !== CUSTOM_EXERCISE_VALUE) {
+        autocompleteLastRecord(getExerciseName(this.value, curLang), { keepEquipment: true });
+      } else {
+        var noteEl = $('gLastRecordNote');
+        if (noteEl) noteEl.style.display = 'none';
+      }
+    });
+  }
+  if ($('gex')) {
+    $('gex').addEventListener('input', function () { autocompleteLastRecord(this.value); });
+    $('gex').addEventListener('change', function () { autocompleteLastRecord(this.value); });
+  }
 
   function deleteLift(id) {
     delete lifts[id];
@@ -1780,15 +2132,32 @@
 
   $('gf').addEventListener('submit', function (e) {
     e.preventDefault();
-    var ex = $('gex').value.trim(), date = currentDate(), series = num($('gsets').value), reps = num($('greps').value), kg = num($('gkg').value);
-    syncDateMirrors(date);
-    if (ex === t('optCustomExercise')) {
+    var sel = $('liftExerciseSelect');
+    var selectedKey = sel ? sel.value : '';
+    var ex = '', exerciseKey = '';
+    if (selectedKey === CUSTOM_EXERCISE_VALUE) {
+      ex = $('gex') ? $('gex').value.trim() : '';
+      if (!ex) { say('gmsg', t('missingCustomExercise'), true); return; }
+    } else if (selectedKey && EX_NAME_MAP[selectedKey]) {
+      exerciseKey = selectedKey;
+      ex = getExerciseName(selectedKey, curLang);
+    } else {
       say('gmsg', t('missingFields'), true);
       return;
     }
+    var date = currentDate(), series = num($('gsets').value), reps = num($('greps').value), kg = num($('gkg').value);
+    syncDateMirrors(date);
     if (!date || !ex) { say('gmsg', t('missingFields'), true); return; }
     if (series < 1 || reps < 1) { say('gmsg', t('missingSetsReps'), true); return; }
-    var payload = { tipo: $('gtype').value, ejercicio: ex, series: series, reps: reps, kg: kg, ts: Date.now() };
+    var payload = {
+      tipo: $('gtype').value,
+      ejercicio: ex,
+      exerciseKey: exerciseKey,
+      series: series,
+      reps: reps,
+      kg: kg,
+      ts: Date.now()
+    };
     if (Storage.addLift) {
       Storage.addLift(lifts, date, payload);
     } else {
@@ -2434,12 +2803,17 @@
   window.PulseFit.LOCALE = LOCALE;
   window.PulseFit.SUPPORTED_LANGS = SUPPORTED_LANGS;
   window.PulseFit.EX_NAME_MAP = EX_NAME_MAP;
+  window.PulseFit.getExerciseName = getExerciseName;
+  window.PulseFit.getExerciseLiftGroups = getExerciseLiftGroups;
   window.PulseFit.getCanonicalExerciseKey = getCanonicalExerciseKey;
   window.PulseFit.days = days;
   window.PulseFit.lifts = lifts;
   window.PulseFit.routineConfig = routineConfig;
   window.PulseFit.cardioConfig = cardioConfig;
 
+  renderCardioDetailBuilder();
+  renderLiftMuscleSelect();
+  renderLiftExerciseSelect({ keepSelection: false });
   showTab(location.hash.replace('#', ''));
   clearForm();
 

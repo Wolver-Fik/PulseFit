@@ -1151,6 +1151,228 @@
       '</div>';
   }
 
+  /* ---------- resúmenes compactos y tarjetas compartidas por los historiales ---------- */
+  var COMPACT_LABELS = {
+    es: {
+      names: { treadmill: 'Cinta', stationary_bike: 'Bici fija', outdoor_bike: 'Bici', outdoor_walk: 'Caminata', elliptical: 'Elíptica', stairmaster: 'Escalera', rowing_machine: 'Remo', jump_rope: 'Soga', otro: 'Cardio' },
+      incline: { flat: '0%', low: '2-4%', mid: '5-8%', high: '9-12%' }, inclineSuffix: 'incl.',
+      modes: { intervals: 'Intervalos', continuous: 'Continuo' },
+      resistance: { light: 'Res. baja', moderate: 'Res. media', heavy: 'Res. alta', climb: 'Res. subida' },
+      level: { soft: 'Suave', moderate: 'Medio', intense: 'Alto', max: 'Máx.' },
+      rhythm: { constant: 'Constante', intervals: 'Intervalos' },
+      damper: { low: 'Nv.1-3', mid: 'Nv.4-6', high: 'Nv.7-10' },
+      rower: { continuous: 'Continuo', intervals: 'Series' },
+      terrain: { flat: 'Plano', hill: 'Pendiente', fast: 'Rápido', easy: 'Suave' },
+      kmh: 'km/h', showMore: 'Ver más', showLess: 'Ver menos'
+    },
+    en: {
+      names: { treadmill: 'Treadmill', stationary_bike: 'Bike', outdoor_bike: 'Bike', outdoor_walk: 'Walk', elliptical: 'Elliptical', stairmaster: 'Stairs', rowing_machine: 'Rower', jump_rope: 'Rope', otro: 'Cardio' },
+      incline: { flat: '0%', low: '2-4%', mid: '5-8%', high: '9-12%' }, inclineSuffix: 'incline',
+      modes: { intervals: 'Intervals', continuous: 'Continuous' },
+      resistance: { light: 'Low res.', moderate: 'Med res.', heavy: 'High res.', climb: 'Climb' },
+      level: { soft: 'Low', moderate: 'Medium', intense: 'High', max: 'Max' },
+      rhythm: { constant: 'Steady', intervals: 'Intervals' },
+      damper: { low: 'Lv.1-3', mid: 'Lv.4-6', high: 'Lv.7-10' },
+      rower: { continuous: 'Steady', intervals: 'Intervals' },
+      terrain: { flat: 'Flat', hill: 'Hill', fast: 'Fast', easy: 'Easy' },
+      kmh: 'km/h', showMore: 'More', showLess: 'Less'
+    },
+    pt: {
+      names: { treadmill: 'Esteira', stationary_bike: 'Bici fixa', outdoor_bike: 'Bici', outdoor_walk: 'Caminhada', elliptical: 'Elíptico', stairmaster: 'Escada', rowing_machine: 'Remo', jump_rope: 'Corda', otro: 'Cardio' },
+      incline: { flat: '0%', low: '2-4%', mid: '5-8%', high: '9-12%' }, inclineSuffix: 'incl.',
+      modes: { intervals: 'Intervalos', continuous: 'Contínuo' },
+      resistance: { light: 'Res. baixa', moderate: 'Res. média', heavy: 'Res. alta', climb: 'Res. subida' },
+      level: { soft: 'Suave', moderate: 'Médio', intense: 'Alto', max: 'Máx.' },
+      rhythm: { constant: 'Constante', intervals: 'Intervalos' },
+      damper: { low: 'Nv.1-3', mid: 'Nv.4-6', high: 'Nv.7-10' },
+      rower: { continuous: 'Contínuo', intervals: 'Séries' },
+      terrain: { flat: 'Plano', hill: 'Subida', fast: 'Rápido', easy: 'Suave' },
+      kmh: 'km/h', showMore: 'Ver mais', showLess: 'Ver menos'
+    },
+    fr: {
+      names: { treadmill: 'Tapis', stationary_bike: 'Vélo fixe', outdoor_bike: 'Vélo', outdoor_walk: 'Marche', elliptical: 'Elliptique', stairmaster: 'Escalier', rowing_machine: 'Rameur', jump_rope: 'Corde', otro: 'Cardio' },
+      incline: { flat: '0%', low: '2-4%', mid: '5-8%', high: '9-12%' }, inclineSuffix: 'incl.',
+      modes: { intervals: 'Intervalles', continuous: 'Continu' },
+      resistance: { light: 'Rés. faible', moderate: 'Rés. moyenne', heavy: 'Rés. forte', climb: 'Rés. montée' },
+      level: { soft: 'Doux', moderate: 'Moyen', intense: 'Élevé', max: 'Max.' },
+      rhythm: { constant: 'Constant', intervals: 'Intervalles' },
+      damper: { low: 'Niv.1-3', mid: 'Niv.4-6', high: 'Niv.7-10' },
+      rower: { continuous: 'Continu', intervals: 'Séries' },
+      terrain: { flat: 'Plat', hill: 'Pente', fast: 'Rapide', easy: 'Doux' },
+      kmh: 'km/h', showMore: 'Voir plus', showLess: 'Voir moins'
+    },
+    it: {
+      names: { treadmill: 'Tapis', stationary_bike: 'Bici fissa', outdoor_bike: 'Bici', outdoor_walk: 'Camminata', elliptical: 'Ellittica', stairmaster: 'Scale', rowing_machine: 'Remo', jump_rope: 'Corda', otro: 'Cardio' },
+      incline: { flat: '0%', low: '2-4%', mid: '5-8%', high: '9-12%' }, inclineSuffix: 'incl.',
+      modes: { intervals: 'Intervalli', continuous: 'Continuo' },
+      resistance: { light: 'Res. bassa', moderate: 'Res. media', heavy: 'Res. alta', climb: 'Res. salita' },
+      level: { soft: 'Dolce', moderate: 'Medio', intense: 'Alto', max: 'Max' },
+      rhythm: { constant: 'Costante', intervals: 'Intervalli' },
+      damper: { low: 'Liv.1-3', mid: 'Liv.4-6', high: 'Liv.7-10' },
+      rower: { continuous: 'Continuo', intervals: 'Serie' },
+      terrain: { flat: 'Piano', hill: 'Dislivello', fast: 'Veloce', easy: 'Dolce' },
+      kmh: 'km/h', showMore: 'Mostra altro', showLess: 'Mostra meno'
+    },
+    de: {
+      names: { treadmill: 'Laufband', stationary_bike: 'Rad', outdoor_bike: 'Rad', outdoor_walk: 'Gehen', elliptical: 'Ellipse', stairmaster: 'Stufen', rowing_machine: 'Rudern', jump_rope: 'Seil', otro: 'Cardio' },
+      incline: { flat: '0%', low: '2-4%', mid: '5-8%', high: '9-12%' }, inclineSuffix: 'Steig.',
+      modes: { intervals: 'Intervalle', continuous: 'Dauerhaft' },
+      resistance: { light: 'Leicht', moderate: 'Mittel', heavy: 'Schwer', climb: 'Steigung' },
+      level: { soft: 'Leicht', moderate: 'Mittel', intense: 'Hoch', max: 'Max' },
+      rhythm: { constant: 'Konstant', intervals: 'Intervalle' },
+      damper: { low: 'Stufe 1-3', mid: 'Stufe 4-6', high: 'Stufe 7-10' },
+      rower: { continuous: 'Dauerhaft', intervals: 'Intervalle' },
+      terrain: { flat: 'Flach', hill: 'Steigung', fast: 'Schnell', easy: 'Leicht' },
+      kmh: 'km/h', showMore: 'Mehr', showLess: 'Weniger'
+    },
+    ru: {
+      names: { treadmill: 'Беговая', stationary_bike: 'Велосипед', outdoor_bike: 'Велосипед', outdoor_walk: 'Прогулка', elliptical: 'Эллипсоид', stairmaster: 'Ступени', rowing_machine: 'Гребля', jump_rope: 'Скакалка', otro: 'Кардио' },
+      incline: { flat: '0%', low: '2-4%', mid: '5-8%', high: '9-12%' }, inclineSuffix: 'укл.',
+      modes: { intervals: 'Интервалы', continuous: 'Непрерывно' },
+      resistance: { light: 'Низкое', moderate: 'Среднее', heavy: 'Высокое', climb: 'Подъём' },
+      level: { soft: 'Мягкий', moderate: 'Средний', intense: 'Высокий', max: 'Макс.' },
+      rhythm: { constant: 'Постоянный', intervals: 'Интервалы' },
+      damper: { low: 'Ур.1-3', mid: 'Ур.4-6', high: 'Ур.7-10' },
+      rower: { continuous: 'Непрерывно', intervals: 'Отрезки' },
+      terrain: { flat: 'Ровно', hill: 'Подъём', fast: 'Быстро', easy: 'Легко' },
+      kmh: 'км/ч', showMore: 'Ещё', showLess: 'Свернуть'
+    },
+    ja: {
+      names: { treadmill: 'トレッドミル', stationary_bike: 'バイク', outdoor_bike: 'バイク', outdoor_walk: 'ウォーク', elliptical: 'エリプティカル', stairmaster: 'ステア', rowing_machine: 'ローイング', jump_rope: '縄跳び', otro: '有酸素' },
+      incline: { flat: '0%', low: '2-4%', mid: '5-8%', high: '9-12%' }, inclineSuffix: '傾斜',
+      modes: { intervals: 'インターバル', continuous: '連続' },
+      resistance: { light: '低', moderate: '中', heavy: '高', climb: '登り' },
+      level: { soft: '弱', moderate: '中', intense: '強', max: '最大' },
+      rhythm: { constant: '一定', intervals: 'インターバル' },
+      damper: { low: '段1-3', mid: '段4-6', high: '段7-10' },
+      rower: { continuous: '連続', intervals: 'セット' },
+      terrain: { flat: '平坦', hill: '上り', fast: '速い', easy: '軽め' },
+      kmh: 'km/h', showMore: 'もっと見る', showLess: '閉じる'
+    }
+  };
+
+  function compactDict() { return COMPACT_LABELS[curLang] || COMPACT_LABELS.es; }
+
+  function escapeRegExp(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  function shortenCardioName(s) {
+    return String(s || '').split('(')[0].split('/')[0].split(',')[0].trim();
+  }
+
+  // Registros antiguos: quita el nombre repetido de la máquina y acorta el detalle.
+  function cleanLegacyDetail(raw, r, fullName, shortName, w) {
+    var s = String(raw || '');
+    if (r.notes) s = s.split(r.notes).join(' ');
+    [fullName, shortName].forEach(function (n) {
+      if (n) s = s.replace(new RegExp(escapeRegExp(n), 'gi'), ' ');
+    });
+    s = s.replace(/\((?:suave|moderada|alta|low|medium|high|leicht|mittel|hoch|baja|média|faible|moyen|élevé|低|中|高)\)/gi, ' ');
+    s = s.replace(/(inclinaci[oó]n|inclination|incline|inclina[cç][aã]o|steigung|傾斜)\s*(?:plana?|plano|flat|low|high)?\s*(\d+(?:[.,-]\d+)*\s*%)/gi,
+      function (m, p1, p2) { return String(p2).replace(',', '.') + ' ' + w.inclineSuffix; });
+    s = s.replace(/(intervalos?|intervals?|intervalles?|intervalli|intervalle)[^0-9]*(\d+(?:[.,]\d+)?)\s*(?:km\/h)?\s*(?:->|→|to|bis|a)\s*(\d+(?:[.,]\d+)?)(?:\s*km\/h)?/gi,
+      function (m, p1, p2, p3) { return w.modes.intervals + ' ' + p2 + '-' + p3 + ' ' + w.kmh; });
+    s = s.replace(/\s*->\s*/g, '-').replace(/\s*:\s*/g, ' ');
+    s = s.replace(/\s{2,}/g, ' ').replace(/\s*·\s*/g, ' · ').replace(/^(?:\s|·)+|(?:\s|·)+$/g, '');
+    return s;
+  }
+
+  // Resumen de una sesión de cardio en una sola línea, sin repetir la máquina.
+  function compactCardioSummary(r) {
+    if (!r) return '';
+    var w = compactDict();
+    var actId = r.activity || (r.detailFields && r.detailFields.activity) || '';
+    var fullName = actId ? getCardioEquipmentName(actId, curLang) : '';
+    var name = (w.names && w.names[actId]) || shortenCardioName(fullName);
+    var parts = [];
+    if (name) parts.push(name);
+    if (r.intensity) parts.push(getIntensityLabel(r.intensity));
+
+    var values = r.detailFields && r.detailFields.values;
+    if (values && typeof values === 'object' && Object.keys(values).length) {
+      var group = getDetailGroup(actId);
+      var seg = [];
+      if (group === 'treadmill') {
+        if (w.incline[values.cdIncline]) seg.push(w.incline[values.cdIncline] + ' ' + w.inclineSuffix);
+        var mode = values.cdMode === 'intervals' ? w.modes.intervals : w.modes.continuous;
+        if (values.cdMode === 'intervals' && values.cdSpeedBase && values.cdSpeedPeak) {
+          mode += ' ' + values.cdSpeedBase + '-' + values.cdSpeedPeak + ' ' + w.kmh;
+        } else if (values.cdSpeedBase) {
+          mode += ' ' + values.cdSpeedBase + ' ' + w.kmh;
+        }
+        seg.push(mode);
+      } else if (group === 'bike') {
+        if (w.resistance[values.cdResistance]) seg.push(w.resistance[values.cdResistance]);
+        seg.push(values.cdBikeMode === 'intervals' ? w.modes.intervals : w.modes.continuous);
+      } else if (group === 'level') {
+        if (w.level[values.cdLevel]) seg.push(w.level[values.cdLevel]);
+        seg.push(values.cdRhythm === 'intervals' ? w.rhythm.intervals : w.rhythm.constant);
+      } else if (group === 'rower') {
+        if (w.damper[values.cdDamper]) seg.push(w.damper[values.cdDamper]);
+        seg.push(values.cdRowerFocus === 'intervals' ? w.rower.intervals : w.rower.continuous);
+      } else if (w.terrain[values.cdTerrain]) {
+        seg.push(w.terrain[values.cdTerrain]);
+      }
+      parts = parts.concat(seg.filter(Boolean));
+    } else if (r.entreno) {
+      var legacy = cleanLegacyDetail(r.entreno, r, fullName, name, w);
+      if (legacy) parts.push(legacy);
+    }
+    if (r.notes) parts.push(r.notes);
+    return parts.filter(Boolean).join(' · ');
+  }
+
+  var EMPTY_MEAL_RE = /^(nada|none|ningun[ao]?|sin nada|n\/a|na|-)$/i;
+  function hasMealContent(r) {
+    return MEAL_KEYS.some(function (m) {
+      var v = String(r[m] == null ? '' : r[m]).trim();
+      return !!v && !EMPTY_MEAL_RE.test(v);
+    });
+  }
+
+  // Solo comidas con contenido real, en una línea separada por " · ".
+  function compactMealHtml(r) {
+    if (!r) return '';
+    return MEAL_KEYS.filter(function (m) {
+      var v = String(r[m] == null ? '' : r[m]).trim();
+      return !!v && !EMPTY_MEAL_RE.test(v);
+    }).map(function (m) {
+      return '<span class="hist-meal"><b>' + esc(t(m)) + ':</b> ' + esc(String(r[m]).trim()) + '</span>';
+    }).join('<span class="hist-sep"> · </span>');
+  }
+
+  function histPill(text, cls) {
+    return '<span class="hist-pill' + (cls ? ' ' + cls : '') + '">' + esc(text) + '</span>';
+  }
+  function histMetricList(items) {
+    return items.filter(Boolean).join('<span class="hist-sep">·</span>');
+  }
+  function histPlainText(html) {
+    var d = document.createElement('div');
+    d.innerHTML = html;
+    return (d.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+  function histDetail(html) {
+    if (!html) return '';
+    var long = histPlainText(html).length > 140;
+    return '<div class="hist-detail-line" data-toggle-detail="1" role="button" tabindex="0" aria-expanded="false">' + html + '</div>' +
+      (long ? '<button type="button" class="hist-more" data-toggle-detail="1" aria-expanded="false">' + esc(compactDict().showMore) + '</button>' : '');
+  }
+  function histDetailText(summary, mealsHtml) {
+    var out = summary ? '<span>' + esc(summary) + '</span>' : '';
+    if (mealsHtml) out += (out ? '<br>' : '') + '<span class="hist-meals">' + mealsHtml + '</span>';
+    return out;
+  }
+  function histCard(mainHtml, detailHtml, actionsHtml) {
+    return '<article class="hist-card">' +
+      '<div class="hist-card-main">' + mainHtml + '</div>' +
+      (actionsHtml || '') +
+      (detailHtml ? '<div class="hist-card-detail">' + detailHtml + '</div>' : '') +
+      '</article>';
+  }
+  function liftDate(v) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(v.date || '') ? v.date : todayIso();
+  }
+
   function showEditBar(date) {
     var bar = $('editBar');
     if (!bar) return;
@@ -1257,7 +1479,23 @@
     render();
   }
 
+  function toggleHistDetail(el) {
+    var card = el.closest ? el.closest('.hist-card') : null;
+    if (!card) return;
+    var expanded = card.classList.toggle('expanded');
+    var w = compactDict();
+    var btn = card.querySelector('.hist-more');
+    if (btn) {
+      btn.textContent = expanded ? w.showLess : w.showMore;
+      btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+    var line = card.querySelector('.hist-detail-line');
+    if (line) line.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+
   function handleHistoryAction(e) {
+    var toggle = e.target && e.target.closest ? e.target.closest('[data-toggle-detail]') : null;
+    if (toggle) { toggleHistDetail(toggle); return; }
     var btn = e.target && e.target.closest ? e.target.closest('button') : null;
     if (!btn) return;
     if (btn.id === 'btnCancelEdit') { cancelEdit(); return; }
@@ -1272,6 +1510,13 @@
   }
 
   document.addEventListener('click', handleHistoryAction);
+  document.addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.classList &&
+        e.target.classList.contains('hist-detail-line')) {
+      e.preventDefault();
+      toggleHistDetail(e.target);
+    }
+  });
 
   function renderSelectedLifts(date) {
     var box = $('selectedLifts');
@@ -1640,7 +1885,7 @@
     var kcal = all.reduce(function (a, r) { return a + num(r.kcal); }, 0);
     var steps = all.reduce(function (a, r) { return a + num(r.steps); }, 0);
     var mins = all.reduce(function (a, r) { return a + num(r.minutes); }, 0);
-    var withMeals = all.filter(function (r) { return MEAL_KEYS.some(function (m) { return r[m]; }); }).length;
+    var withMeals = all.filter(hasMealContent).length;
 
     $('stats').innerHTML =
       tile(streak, streak === 1 ? t('streak1') : t('streakN')) +
@@ -1658,7 +1903,7 @@
         if (days[keys[li]].entreno) { lastRecord = days[keys[li]]; break; }
       }
       if (lastRecord) {
-        lastDetailEl.textContent = t('cdLastSession') + ': ' + lastRecord.entreno;
+        lastDetailEl.textContent = t('cdLastSession') + ': ' + (compactCardioSummary(lastRecord) || lastRecord.entreno || '');
         lastDetailEl.hidden = false;
       } else {
         lastDetailEl.textContent = '';
@@ -1666,29 +1911,22 @@
       }
     }
 
-    // historial
+    // historial: una tarjeta compacta por día (máximo dos filas)
     if (!keys.length) { $('hist').innerHTML = '<p class="empty">' + esc(t('emptyHist')) + '</p>'; return; }
-    var rows = keys.slice().reverse().map(function (k) {
+    var cards = keys.slice().reverse().map(function (k) {
       var r = days[k];
-      var meals = MEAL_KEYS.filter(function (m) { return r[m]; }).map(function (m) { return '<div><b>' + t(m) + ':</b> ' + esc(r[m]) + '</div>'; }).join('');
-      var details = [];
-      if (r.activity) {
-        var actName = getCardioEquipmentName(r.activity, curLang);
-        var intLabel = r.intensity ? getIntensityLabel(r.intensity) : '';
-        details.push('<b>' + esc(actName) + '</b>' + (intLabel ? ' <small style="color:var(--muted)">(' + esc(intLabel) + ')</small>' : ''));
-      }
-      if (r.entreno) {
-        details.push(esc(r.entreno));
-      }
-      var what = details.length ? '<div style="color:var(--muted);font-size:12px;margin-top:4px">' + details.join(' · ') + '</div>' : '';
-      return '<tr><td>' + esc(fmtDate(k)) + what + '</td>' +
-        '<td><span class="tag ' + (r.exercised ? 'yes' : 'no') + '">' + (r.exercised ? t('statusWorked') : t('statusRest')) + '</span></td>' +
-        '<td class="n">' + fmt(num(r.km), 2) + '</td><td class="n">' + fmt(num(r.kcal), 0) + '</td>' +
-        '<td class="n">' + fmt(num(r.steps), 0) + '</td><td class="n">' + fmt(num(r.minutes), 0) + '</td>' +
-        '<td class="meals">' + (meals || '<span style="color:var(--muted)">' + t('noMealsLogged') + '</span>') + '</td>' +
-        '<td>' + actionButtons('day', k, fmtDate(k)) + '</td></tr>';
+      var metrics = [];
+      if (num(r.km)) metrics.push(histPill(fmt(num(r.km), 2) + ' ' + t('thKm')));
+      if (num(r.kcal)) metrics.push(histPill(fmt(num(r.kcal), 0) + ' ' + t('thKcal')));
+      if (num(r.steps)) metrics.push(histPill(fmt(num(r.steps), 0) + ' ' + t('steps')));
+      if (num(r.minutes)) metrics.push(histPill(fmt(num(r.minutes), 0) + ' ' + t('thMin').toLowerCase()));
+      var main = '<span class="hist-date">' + esc(fmtDate(k)) + '</span>' +
+        '<span class="tag ' + (r.exercised ? 'yes' : 'no') + '">' + esc(r.exercised ? t('statusWorked') : t('statusRest')) + '</span>' +
+        (metrics.length ? '<span class="hist-metrics">' + histMetricList(metrics) + '</span>' : '');
+      var detail = histDetailText(compactCardioSummary(r), compactMealHtml(r));
+      return histCard(main, histDetail(detail), actionButtons('day', k, fmtDate(k)));
     }).join('');
-    $('hist').innerHTML = '<table><thead><tr><th>' + t('thDate') + '</th><th>' + t('thStatus') + '</th><th class="n">' + t('thKm') + '</th><th class="n">' + t('thKcal') + '</th><th class="n">' + t('thSteps') + '</th><th class="n">' + t('thMin') + '</th><th>' + t('thMeals') + '</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+    $('hist').innerHTML = cards;
   }
 
   var TEXT_IDS = ['entreno', 'desayuno', 'almuerzo', 'merienda', 'cena', 'otros'];
@@ -2083,26 +2321,31 @@
       return;
     }
     list.sort(function (a, b) { return a.v.date < b.v.date ? 1 : a.v.date > b.v.date ? -1 : (a.v.ts || 0) - (b.v.ts || 0); });
-    var out = '', cur = null;
-    list.forEach(function (it) {
-      var v = it.v;
-      if (v.date !== cur) { cur = v.date; out += '<div class="gday"><h3>' + esc(fmtDate(cur)) + '</h3></div>'; }
-      out += '<div class="lift"><div class="what">' + esc(v.ejercicio) + ' <small>· ' + esc(getTypeLabel(v.tipo)) + '</small><br>' +
-        fmt(num(v.series), 0) + ' × ' + fmt(num(v.reps), 0) + ' ' + t('withConnector') + ' ' + fmt(num(v.kg), 1) + ' kg</div>' +
-        actionButtons('lift', it.id, v.ejercicio) + '</div>';
-    });
-    box.innerHTML = out;
+    box.innerHTML = list.map(function (it) {
+      var v = it.v, date = liftDate(v);
+      var metrics = [histPill(fmt(num(v.series), 0) + '×' + fmt(num(v.reps), 0)), histPill(fmt(num(v.kg), 1) + ' kg')];
+      var main = '<span class="hist-date">' + esc(fmtDate(date)) + '</span>' +
+        '<span class="tag yes">' + esc(t('statusWorked')) + '</span>' +
+        '<span class="hist-metrics">' + histMetricList(metrics) + '</span>';
+      var detail = histDetailText(String(v.ejercicio || '') + ' · ' + getTypeLabel(v.tipo), '');
+      return histCard(main, histDetail(detail), actionButtons('lift', it.id, v.ejercicio));
+    }).join('');
 
     var best = {};
     list.forEach(function (it) {
       var v = it.v, k = String(v.ejercicio).trim().toLowerCase(), b = best[k], kg = num(v.kg);
       if (!b || kg > b.kg || (kg === b.kg && v.date > b.date)) best[k] = { name: v.ejercicio, kg: kg, reps: num(v.reps), date: v.date };
     });
-    var rows = Object.keys(best).sort().map(function (k) {
+    marks.innerHTML = Object.keys(best).sort().map(function (k) {
       var b = best[k];
-      return '<tr><td>' + esc(b.name) + '</td><td class="n">' + fmt(b.kg, 1) + ' kg</td><td class="n">' + fmt(b.reps, 0) + '</td><td>' + esc(fmtDate(b.date)) + '</td></tr>';
+      var main = '<span class="hist-date">' + esc(b.name) + '</span>' +
+        '<span class="hist-metrics">' + histMetricList([
+          histPill(fmt(b.kg, 1) + ' kg', 'accent'),
+          histPill(fmt(b.reps, 0) + ' ' + t('thReps'))
+        ]) + '</span>' +
+        '<span class="hist-pill">' + esc(fmtDate(b.date)) + '</span>';
+      return histCard(main, '', '');
     }).join('');
-    marks.innerHTML = '<table style="min-width:420px"><thead><tr><th>' + t('thExercise') + '</th><th class="n">' + t('thBestWeight') + '</th><th class="n">' + t('thReps') + '</th><th>' + t('thDate') + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
   }
 
   function renderGymTotals() {
@@ -2132,34 +2375,36 @@
     Object.keys(days).forEach(function (date) {
       var r = days[date];
       if (!r) return;
-      var parts = [];
-      if (r.activity) parts.push(getCardioEquipmentName(r.activity, curLang));
-      if (r.minutes != null) parts.push(fmt(num(r.minutes), 0) + ' ' + t('minutes'));
-      if (num(r.km)) parts.push(fmt(num(r.km), 2) + ' km');
-      var name = parts.join(' · ') || fmtDate(date);
+      var summary = compactCardioSummary(r);
+      var metrics = [];
+      if (num(r.km)) metrics.push(histPill(fmt(num(r.km), 2) + ' ' + t('thKm')));
+      if (num(r.kcal)) metrics.push(histPill(fmt(num(r.kcal), 0) + ' ' + t('thKcal')));
+      if (num(r.minutes)) metrics.push(histPill(fmt(num(r.minutes), 0) + ' ' + t('thMin').toLowerCase()));
+      var main = '<span class="hist-date">' + esc(fmtDate(date)) + '</span>' +
+        '<span class="tag ' + (r.exercised ? 'yes' : 'no') + '">' + esc(r.exercised ? t('statusWorked') : t('statusRest')) + '</span>' +
+        '<span class="tag kind">' + esc(t('tabCardio')) + '</span>' +
+        (metrics.length ? '<span class="hist-metrics">' + histMetricList(metrics) + '</span>' : '');
       rows.push({
         date: date,
         ts: 0,
-        html: '<tr><td>' + esc(fmtDate(date)) + '</td>' +
-          '<td><span class="tag yes">' + esc(t('tabCardio')) + '</span></td>' +
-          '<td>' + esc(name) + '</td>' +
-          '<td>' + actionButtons('day', date, name) + '</td></tr>'
+        html: histCard(main, histDetail(histDetailText(summary, compactMealHtml(r))), actionButtons('day', date, summary || fmtDate(date)))
       });
     });
 
     Object.keys(lifts).forEach(function (id) {
       var v = lifts[id];
       if (!v) return;
-      var date = /^\d{4}-\d{2}-\d{2}$/.test(v.date || '') ? v.date : todayIso();
+      var date = liftDate(v);
       var name = String(v.ejercicio || '');
-      var detail = fmt(num(v.series), 0) + ' × ' + fmt(num(v.reps), 0) + ' ' + t('withConnector') + ' ' + fmt(num(v.kg), 1) + ' kg';
+      var metrics = [histPill(fmt(num(v.series), 0) + '×' + fmt(num(v.reps), 0)), histPill(fmt(num(v.kg), 1) + ' kg')];
+      var main = '<span class="hist-date">' + esc(fmtDate(date)) + '</span>' +
+        '<span class="tag yes">' + esc(t('statusWorked')) + '</span>' +
+        '<span class="tag kind">' + esc(t('tabWeights')) + '</span>' +
+        '<span class="hist-metrics">' + histMetricList(metrics) + '</span>';
       rows.push({
         date: date,
         ts: num(v.ts),
-        html: '<tr><td>' + esc(fmtDate(date)) + '</td>' +
-          '<td><span class="tag no">' + esc(t('tabWeights')) + '</span></td>' +
-          '<td>' + esc(name) + ' <small style="color:var(--muted)">· ' + esc(detail) + '</small></td>' +
-          '<td>' + actionButtons('lift', id, name) + '</td></tr>'
+        html: histCard(main, histDetail(histDetailText(name + ' · ' + getTypeLabel(v.tipo), '')), actionButtons('lift', id, name))
       });
     });
 
@@ -2171,8 +2416,7 @@
       if (a.date !== b.date) return a.date < b.date ? 1 : -1;
       return b.ts - a.ts;
     });
-    box.innerHTML = '<table><thead><tr><th>' + esc(t('thDate')) + '</th><th>' + esc(t('thSession')) + '</th><th>' + esc(t('labelWhat')) + '</th><th></th></tr></thead><tbody>' +
-      rows.map(function (r) { return r.html; }).join('') + '</tbody></table>';
+    box.innerHTML = rows.map(function (r) { return r.html; }).join('');
   }
 
   function autocompleteLastRecord(rawName, opts) {

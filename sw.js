@@ -1,6 +1,6 @@
 ﻿// Guarda la app en el dispositivo para que abra sin conexiÃ³n.
 // Si cambiÃ¡s algÃºn archivo, subÃ­ la versiÃ³n nueva y cambiÃ¡ el nÃºmero de CACHE para que se actualice.
-var CACHE = 'pulsefit-v19';
+var CACHE = 'pulsefit-v20';
 var SHELL = [
   './',
   './index.html',

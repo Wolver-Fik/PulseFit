@@ -91,17 +91,42 @@ button.link{border:0;background:none;padding:4px 6px;color:var(--accent);text-de
 button.link.danger{color:var(--bad)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .msg{font-size:13px;color:var(--muted)} .msg.err{color:var(--bad)}
-.scroll{overflow-x:auto;margin-top:8px}
-table{border-collapse:collapse;width:100%;min-width:640px;font-variant-numeric:tabular-nums}
-th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-td.n,th.n{text-align:right}
-td.meals{min-width:240px;font-size:13px}
-td.meals div+div{margin-top:3px}
-td.meals b{font-weight:600;color:var(--muted)}
+/* Historiales: tarjetas compactas de dos filas, legibles sin scroll horizontal */
+.hist-list{display:flex;flex-direction:column;gap:8px;margin-top:8px;min-width:0}
+.hist-card{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;row-gap:6px;
+  padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+  background:var(--surface);min-width:0;
+}
+.hist-card-main{grid-column:1;grid-row:1;display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-width:0}
+.hist-card>.row-actions{grid-column:2;grid-row:1;align-self:center}
+.hist-card-detail{grid-column:1/-1;grid-row:2;min-width:0;font-size:12px;color:var(--muted);line-height:1.45}
+.hist-date{font-family:var(--head);font-size:13px;font-weight:700;color:var(--fg);white-space:nowrap}
+.hist-metrics{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0}
+.hist-pill{
+  display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;
+  background:var(--bg);border:1px solid var(--line);color:var(--fg);
+  font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.hist-pill.accent{background:var(--soft);border-color:transparent;color:var(--accent)}
+.hist-sep{color:var(--muted);font-size:12px;line-height:1}
+.hist-meal b{font-weight:700;color:var(--muted)}
+.hist-detail-line{
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+  overflow:hidden;overflow-wrap:anywhere;cursor:pointer;
+}
+.hist-card.expanded .hist-detail-line{display:block;overflow:visible}
+.hist-more{padding:2px 0;margin-top:2px;border:0;background:none;color:var(--accent);font-size:11px;font-weight:600}
+.hist-more:hover{text-decoration:underline}
 .tag{font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px}
 .tag.yes{background:var(--soft);color:var(--accent)}
 .tag.no{color:var(--muted);border:1px solid var(--line)}
+.tag.kind{background:var(--bg);border:1px solid var(--line);color:var(--muted);font-size:11px;padding:2px 7px}
+@media (max-width:380px){
+  .hist-card{padding:9px 10px}
+  .hist-date,.hist-pill{font-size:11px}
+  .hist-card .icon-btn{width:28px;height:28px}
+}
 
 /* Barra de fecha de entrenamiento: registro de hoy y de días pasados */
 .workout-date-bar{display:flex;flex-direction:column;gap:8px;padding:12px 14px}

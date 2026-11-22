@@ -1,6 +1,6 @@
 # PulseFit 🏋️‍♂️🏃‍♂️
 
-**[Live Demo](https://github.io)** · **[MIT License](./LICENSE)** · **PWA Offline-First**
+**[Live Demo](https://wolver-fik.github.io/PulseFit/)** · **[MIT License](./LICENSE)** · **PWA Offline-First**
 
 [English](#english) | [Español](#español)
 

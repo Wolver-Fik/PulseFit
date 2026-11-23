@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PulseFit">
+  <defs>
+    <linearGradient id="pfMark" x1="6" y1="14" x2="58" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10B981"/>
+      <stop offset="1" stop-color="#34D399"/>
+    </linearGradient>
+    <radialGradient id="pfGlow" cx="50%" cy="52%" r="55%">
+      <stop stop-color="#10B981" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#10B981" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0E1614"/>
+  <rect x=".5" y=".5" width="63" height="63" rx="13.5" fill="none" stroke="#34D399" stroke-opacity=".35"/>
+  <circle cx="32" cy="34" r="29" fill="url(#pfGlow)"/>
+  <rect x="7" y="24" width="7" height="20" rx="3.5" fill="url(#pfMark)"/>
+  <rect x="50" y="24" width="7" height="20" rx="3.5" fill="url(#pfMark)"/>
+  <path d="M14 34h36" stroke="url(#pfMark)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M15 34H20L25 24L31 46L37 18L43 37L48 30L52 34" fill="none" stroke="url(#pfMark)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

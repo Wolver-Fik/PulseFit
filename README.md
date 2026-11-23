@@ -1,8 +1,8 @@
-# PulseFit 🏋️‍♂️🏃‍♂️
+﻿# PulseFit ðŸ‹ï¸â€â™‚ï¸ðŸƒâ€â™‚ï¸
 
-**[Live Demo](https://wolver-fik.github.io/PulseFit/)** · **[MIT License](./LICENSE)** · **PWA Offline-First**
+**[Live Demo](https://wolver-fik.github.io/PulseFit/)** Â· **[PolyForm Noncommercial License 1.0.0](./LICENSE)** Â· **PWA Offline-First**
 
-[English](#english) | [Español](#español)
+[English](#english) | [EspaÃ±ol](#espaÃ±ol)
 
 ---
 
@@ -10,7 +10,7 @@
 
 **PulseFit** is a minimalist, offline-first Progressive Web App (PWA) for tracking strength training, customizable cardio routines, and daily progression with zero ads, accounts, or servers.
 
-### ✨ Key Features
+### âœ¨ Key Features
 
 * **Dynamic Strength & Gym Builder:** Adapts routines to your available equipment (dumbbells, barbells, cables, machines, bodyweight, or home setup), split (*PPL*, *Upper/Lower*, *Full Body*, *Home*), and goal (*Hypertrophy*, *Strength*, *Toning*, *Metabolic*).
 * **Customizable Cardio Planner:** Tailors workouts to your available gear (treadmill, bike, elliptical, stair climber, rower, jump rope, or outdoor walking) and goal (*LISS Fat Burn*, *Endurance*, *HIIT*, *Daily Steps*).
@@ -25,57 +25,58 @@
 * **Offline-First & Auto-Updating:** Installable PWA with a `Network-First` Service Worker that updates silently in the background.
 * **Total Privacy**: All data is stored locally on your device via `localStorage`. No external servers, logins, or tracking.
 
-* ### 📱 Installing as a Mobile App
+* ### ðŸ“± Installing as a Mobile App
 
 Because PulseFit is a **Progressive Web App (PWA)** served over HTTPS, you can install it directly to your home screen:
 
-#### 🍏 iOS / iPadOS (Safari)
+#### ðŸ iOS / iPadOS (Safari)
 1. Open the app link in **Safari**.
 2. Tap the **Share** button (square with an upward arrow).
 3. Scroll down and tap **"Add to Home Screen"**.
 4. Tap **"Add"** in the top right corner.
 
-#### 🤖 Android (Chrome)
+#### ðŸ¤– Android (Chrome)
 1. Open the app link in **Google Chrome**.
-2. Tap the three-dot menu (⋮) or tap the "Install app" prompt.
+2. Tap the three-dot menu (â‹®) or tap the "Install app" prompt.
 3. Select **"Add to Home screen"** or **"Install"**.
 
 > **Tech Stack:** Vanilla JS (modular ES structure), CSS3, Chart.js, Service Worker API.
 
 ---
 
-## Español
+## EspaÃ±ol
 
 **PulseFit** es una Progressive Web App (PWA) minimalista y *offline-first* para registrar entrenamientos de fuerza, planes de cardio configurables y progreso diario sin publicidad, cuentas ni servidores.
 
-### ✨ Funciones Principales
+### âœ¨ Funciones Principales
 
-* **Configurador de Pesas y Gimnasio:** Adapta tu rutina según el material o máquinas disponibles (mancuernas, barra, poleas, prensa, máquinas, peso corporal o equipo en casa), división (*Empuje/Tirón/Piernas*, *Torso/Pierna*, *Full Body*, *Casa*) y objetivo (*Hipertrofia*, *Fuerza*, *Tonificación*, *Metabólico*).
-* **Planificador de Cardio Configurable:** Personaliza sesiones según el equipo disponible (cinta, bicicleta, elíptica, escaladora, remo, cuerda o caminata) y objetivo (*Quema de grasa LISS*, *Resistencia*, *HIIT*, *Pasos diarios*).
-* **Temporizador de Descanso Flotante:** Cronómetro regresivo con vibración háptica (`Web Vibration API`) y alerta sonora sintetizada (`Web Audio API`).
-* **Seguimiento de Cardio**: Registro de distancia (km), calorías activas, pasos, duración en minutos y notas del entrenamiento. Cálculo automático de rachas de días consecutivos y totales acumulados.
+* **Configurador de Pesas y Gimnasio:** Adapta tu rutina segÃºn el material o mÃ¡quinas disponibles (mancuernas, barra, poleas, prensa, mÃ¡quinas, peso corporal o equipo en casa), divisiÃ³n (*Empuje/TirÃ³n/Piernas*, *Torso/Pierna*, *Full Body*, *Casa*) y objetivo (*Hipertrofia*, *Fuerza*, *TonificaciÃ³n*, *MetabÃ³lico*).
+* **Planificador de Cardio Configurable:** Personaliza sesiones segÃºn el equipo disponible (cinta, bicicleta, elÃ­ptica, escaladora, remo, cuerda o caminata) y objetivo (*Quema de grasa LISS*, *Resistencia*, *HIIT*, *Pasos diarios*).
+* **Temporizador de Descanso Flotante:** CronÃ³metro regresivo con vibraciÃ³n hÃ¡ptica (`Web Vibration API`) y alerta sonora sintetizada (`Web Audio API`).
+* **Seguimiento de Cardio**: Registro de distancia (km), calorÃ­as activas, pasos, duraciÃ³n en minutos y notas del entrenamiento. CÃ¡lculo automÃ¡tico de rachas de dÃ­as consecutivos y totales acumulados.
 * **Registro de comidas**: Seguimiento diario de desayuno, almuerzo, merienda, cena y comidas intermedias o bebidas.
-* **Resumen total**: Calendario interactivo semanal y métricas globales consolidadas (días entrenados, volumen total de peso levantado, km totales, etc.).
-* **Gráficos de Evolución (`Chart.js`):** Visualiza la progresión de peso máximo (`kg`) por ejercicio, récords personales y totales acumulados.
-* **Respaldo de Datos (JSON):** Almacenamiento 100% local en `localStorage` con exportación e importación en un clic (`.json`).
+* **Resumen total**: Calendario interactivo semanal y mÃ©tricas globales consolidadas (dÃ­as entrenados, volumen total de peso levantado, km totales, etc.).
+* **GrÃ¡ficos de EvoluciÃ³n (`Chart.js`):** Visualiza la progresiÃ³n de peso mÃ¡ximo (`kg`) por ejercicio, rÃ©cords personales y totales acumulados.
+* **Respaldo de Datos (JSON):** Almacenamiento 100% local en `localStorage` con exportaciÃ³n e importaciÃ³n en un clic (`.json`).
 * **8 Idiomas:** Interfaz y formatos regionales en **ES, EN, PT, FR, IT, DE, RU, JA**.
-* **Modo oscuro automático**: Se adapta dinámicamente a la preferencia de color del sistema operativo.
-* **Offline-First y Autoactualizable:** PWA instalable con Service Worker *Network-First* que se actualiza automáticamente en segundo plano.
-* **Privacidad total**: Todos los datos se almacenan exclusivamente en el dispositivo mediante `localStorage`. No requiere servidores externos ni recolección de datos personales.
+* **Modo oscuro automÃ¡tico**: Se adapta dinÃ¡micamente a la preferencia de color del sistema operativo.
+* **Offline-First y Autoactualizable:** PWA instalable con Service Worker *Network-First* que se actualiza automÃ¡ticamente en segundo plano.
+* **Privacidad total**: Todos los datos se almacenan exclusivamente en el dispositivo mediante `localStorage`. No requiere servidores externos ni recolecciÃ³n de datos personales.
 
-### 📱 Cómo instalar la App en tu teléfono
+### ðŸ“± CÃ³mo instalar la App en tu telÃ©fono
 
-Al ser una **Progressive Web App (PWA)** servida bajo HTTPS, puedes instalarla en tu pantalla de inicio como una aplicación nativa:
+Al ser una **Progressive Web App (PWA)** servida bajo HTTPS, puedes instalarla en tu pantalla de inicio como una aplicaciÃ³n nativa:
 
-#### 🍏 En iPhone / iPad (Safari)
-1. Abre el enlace de la aplicación en **Safari**.
-2. Presiona el botón **Compartir** (icono de cuadrado con flecha hacia arriba).
-3. Desplázate hacia abajo y selecciona **"Agregar a pantalla de inicio"**.
+#### ðŸ En iPhone / iPad (Safari)
+1. Abre el enlace de la aplicaciÃ³n en **Safari**.
+2. Presiona el botÃ³n **Compartir** (icono de cuadrado con flecha hacia arriba).
+3. DesplÃ¡zate hacia abajo y selecciona **"Agregar a pantalla de inicio"**.
 4. Toca **"Agregar"** en la esquina superior derecha.
 
-#### 🤖 En Android (Chrome)
-1. Abre el enlace de la aplicación en **Google Chrome**.
-2. Toca el menú de tres puntos (⋮) o el botón flotante "Instalar aplicación".
-3. Selecciona **"Agregar a la pantalla principal"** o **"Instalar aplicación"**.
+#### ðŸ¤– En Android (Chrome)
+1. Abre el enlace de la aplicaciÃ³n en **Google Chrome**.
+2. Toca el menÃº de tres puntos (â‹®) o el botÃ³n flotante "Instalar aplicaciÃ³n".
+3. Selecciona **"Agregar a la pantalla principal"** o **"Instalar aplicaciÃ³n"**.
 
-> **Tecnologías:** JavaScript Vanilla (arquitectura modular), CSS3, Chart.js, Service Worker API.
+> **TecnologÃ­as:** JavaScript Vanilla (arquitectura modular), CSS3, Chart.js, Service Worker API.
+

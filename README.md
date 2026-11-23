@@ -1,8 +1,8 @@
-# PulseFit 🏋️‍♂️🏃‍♂️
+# PulseFit
 
-**[Live Demo](https://wolver-fik.github.io/PulseFit/)** · **[PolyForm Noncommercial License 1.0.0](./LICENSE)** · **PWA Offline-First**
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-PulseFit-6366F1)](https://wolver-fik.github.io/PulseFit/)
 
-[English](#english) | [Español](#español)
+[English](#english) · [Español](#español)
 
 ---
 
@@ -42,7 +42,13 @@ Because PulseFit is a **Progressive Web App (PWA)** served over HTTPS, you can i
 
 > **Tech Stack:** Vanilla JS (modular ES structure), CSS3, Chart.js, Service Worker API.
 
+### License
+
+[PolyForm Noncommercial License 1.0.0](./LICENSE) © 2026 Wolver-Fik.
+
 ---
+
+<a id="español"></a>
 
 ## Español
 
@@ -79,3 +85,7 @@ Al ser una **Progressive Web App (PWA)** servida bajo HTTPS, puedes instalarla e
 3. Selecciona **"Agregar a la pantalla principal"** o **"Instalar aplicación"**.
 
 > **Tecnologías:** JavaScript Vanilla (arquitectura modular), CSS3, Chart.js, Service Worker API.
+
+### Licencia
+
+[PolyForm Noncommercial License 1.0.0](./LICENSE) © 2026 Wolver-Fik.

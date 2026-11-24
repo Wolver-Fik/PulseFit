@@ -149,12 +149,20 @@ button.link.danger{color:var(--bad)}
 
 /* Barra de fecha de entrenamiento: registro de hoy y de días pasados */
 .workout-date-bar{display:flex;flex-direction:column;gap:8px;padding:12px 14px}
-.workout-date-main{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
-.workout-date-field{display:flex;flex-direction:column;gap:4px;flex:1 1 170px;max-width:240px;min-width:150px}
+.workout-date-main{display:flex;align-items:center;gap:10px;width:100%;min-width:0}
+.workout-date-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;width:100%}
 .workout-date-field label{font-size:12px;font-weight:600;color:var(--muted)}
-.workout-date-field input[type=date]{font-size:14px;padding:8px 10px}
-.tag.today{background:var(--soft);color:var(--accent);margin-bottom:9px}
-#btnToday{margin-bottom:9px;padding:7px 12px}
+/* Fila horizontal limpia: input a la izquierda, botón "Hoy" a la derecha. */
+.workout-date-controls{display:flex;align-items:center;gap:10px;width:100%;min-width:0}
+.workout-date-field input[type=date]{
+  font-size:14px;line-height:1.5;min-height:42px;
+  text-align:left;flex:1;min-width:0;width:100%;padding:10px 14px;
+}
+.tag.today{background:var(--soft);color:var(--accent);margin:0;flex-shrink:0;position:static}
+#btnToday{
+  position:static;margin:0;padding:10px 14px;font-size:14px;line-height:1.5;min-height:42px;
+  flex-shrink:0;white-space:nowrap;
+}
 .past-day-notice{margin:0;font-size:12px;color:var(--accent)}
 .selected-lift{
   display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
@@ -487,4 +495,139 @@ details[open] .config-summary-arrow{transform:rotate(180deg)}
 .exercise-builder select,.exercise-builder input[type=text]{min-height:44px;cursor:pointer}
 @media (max-width:420px){
   .builder-grid,.exercise-builder{grid-template-columns:1fr}
+}
+
+/* ---------- Plan, calendario, comparación y medidas ---------- */
+/* Etiquetas cortas: nunca se parten con guión en pestañas o botones móviles. */
+.tab,button,.lang-select,.tag,.hist-pill,.cal-day,.plan-day,.compare-grid>*,.measure-pill,
+.measure-chart-head select{white-space:nowrap;hyphens:none;-webkit-hyphens:none}
+.btn-subtle.danger{color:var(--bad);border-color:var(--bad)}
+.btn-subtle.danger:hover{color:var(--bad);border-color:var(--bad);background:var(--soft)}
+
+/* Resumen del plan de hoy (siempre visible, fuera de las pestañas) */
+.today-plan{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  border-color:var(--accent);background:linear-gradient(120deg,var(--soft),var(--surface) 65%);
+}
+.today-plan-main{display:flex;align-items:center;gap:10px;min-width:0}
+.today-plan-copy{display:flex;flex-direction:column;gap:1px;min-width:0}
+.today-plan-copy h2{font-size:15px}
+.today-plan-copy p{margin:0;font-size:13px;overflow-wrap:anywhere}
+.today-plan .btn-subtle{flex-shrink:0}
+
+/* Calendario mensual compacto */
+.chart-header .cal-nav{display:flex;align-items:center;gap:6px}
+.cal-nav strong{font-family:var(--head);font-size:14px;min-width:118px;text-align:center;text-transform:capitalize}
+.cal-nav .icon-btn{width:30px;height:30px;font-size:17px;line-height:1}
+.cal-weekdays,.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-weekdays{margin-top:12px}
+.cal-weekdays span{text-align:center;font-size:11px;font-weight:600;color:var(--muted)}
+.cal-grid{margin-top:4px}
+.cal-day{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  min-width:0;min-height:44px;padding:3px 1px;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg);color:var(--fg);font-size:12px;font-weight:600;line-height:1.15;
+  transition:border-color .15s ease,background .15s ease;
+}
+.cal-day:hover{border-color:var(--accent)}
+.cal-day.other{opacity:.38}
+.cal-day.trained{background:var(--soft);border-color:var(--accent)}
+.cal-day.rest{background:var(--bg)}
+.cal-day.combo:not(.trained){background:var(--soft);border-color:var(--accent)}
+.cal-day.trained.rest{background:var(--soft);border-color:var(--accent)}
+.cal-day.today{box-shadow:inset 0 0 0 1px var(--fg)}
+.cal-day.selected{border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.cal-mark{font-size:11px;color:var(--muted);font-weight:500;line-height:1}
+.cal-day.trained .cal-mark{color:var(--accent);font-weight:700}
+.cal-day.rest .cal-mark{color:var(--muted)}
+.cal-day.combo .cal-mark{color:var(--accent);font-weight:700}
+.cal-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:12px;color:var(--muted)}
+.cal-legend span{display:inline-flex;align-items:center;gap:5px}
+.cal-key{width:10px;height:10px;border-radius:3px;border:1px solid var(--line);background:var(--bg);display:inline-block;flex-shrink:0}
+.cal-key.trained{background:var(--soft);border-color:var(--accent)}
+.cal-key.rest{border-style:dashed}
+.cal-day-editor{
+  margin-top:10px;padding:10px 12px;border:1px solid var(--accent);border-radius:8px;background:var(--soft);
+}
+.cal-day-editor-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.cal-day-editor-head strong{font-family:var(--head);font-size:14px}
+.cal-day-editor .btn-subtle{padding:5px 10px;font-size:12px}
+.cal-day-editor label{margin-top:8px}
+.cal-day-editor .msg{margin:6px 0 0;color:var(--accent)}
+
+/* Planificador semanal */
+.week-plan{display:flex;flex-direction:column;gap:6px}
+.week-plan-row{
+  display:grid;grid-template-columns:minmax(68px,88px) minmax(0,1fr) minmax(0,auto);
+  gap:8px;align-items:center;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);
+}
+.week-plan-row.today{border-color:var(--accent);background:var(--soft)}
+.week-plan-row .plan-day{font-size:13px;font-weight:600;color:var(--fg)}
+.week-plan-row select{font-size:13px;min-height:40px;cursor:pointer}
+/* Etiquetas completas: se adaptan al ancho, nunca se recortan con "..." */
+.week-plan-tags{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;
+  gap:5px;min-width:0;max-width:100%;
+}
+.week-plan-tags .tag{
+  max-width:none;overflow:visible;white-space:normal;
+  overflow-wrap:break-word;word-break:normal;text-align:left;
+}
+
+/* Comparación de periodos */
+.compare-block{margin-top:12px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.compare-grid{display:grid;grid-template-columns:minmax(88px,1.5fr) repeat(3,minmax(62px,1fr));gap:0}
+.compare-grid>*{padding:8px 10px;font-size:12px;border-bottom:1px solid var(--line);overflow:hidden;text-overflow:ellipsis}
+.compare-grid>.compare-head{background:var(--bg);font-weight:700;color:var(--muted);font-size:11px}
+.compare-grid>*:nth-child(4n){text-align:right}
+.compare-grid>.compare-label{font-weight:600;color:var(--fg)}
+.compare-grid>.compare-val{font-family:var(--head);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.compare-grid>.compare-prev{color:var(--muted);font-variant-numeric:tabular-nums}
+.delta{font-family:var(--head);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.delta.up{color:var(--accent)}
+.delta.down{color:var(--bad)}
+.delta.flat{color:var(--muted)}
+.compare-empty{padding:10px 0 2px;color:var(--muted);font-size:13px}
+
+/* Medidas corporales */
+.measure-form{grid-template-columns:repeat(auto-fit,minmax(115px,1fr))}
+.measure-form .wide{grid-column:1/-1}
+.measure-last{
+  margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);
+}
+.measure-last-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.measure-last-head strong{font-family:var(--head);font-size:14px}
+.measure-pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.measure-pill{
+  display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:99px;
+  background:var(--surface);border:1px solid var(--line);font-size:12px;font-weight:600;
+  font-variant-numeric:tabular-nums;color:var(--fg);
+}
+.measure-pill.accent{background:var(--soft);border-color:transparent;color:var(--accent)}
+.measure-pill.up{color:var(--accent)}
+.measure-pill.down{color:var(--bad)}
+.measure-chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px}
+.measure-chart-head select{max-width:170px}
+.measure-chart{
+  margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);
+  min-height:150px;overflow:hidden;
+}
+.measure-chart svg{display:block;width:100%;height:auto}
+.measure-chart .chart-empty{color:var(--muted);font-size:13px;padding:18px 4px}
+.measure-row-main{display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-width:0}
+
+@media (max-width:420px){
+  .workout-date-main{gap:8px}
+  .workout-date-controls{gap:8px}
+  .workout-date-field input[type=date]{padding-left:8px;padding-right:8px}
+  #btnToday{padding-left:10px;padding-right:10px}
+  button.tab{font-size:12px;padding:10px 3px}
+  .cal-day{min-height:38px;font-size:11px;border-radius:6px}
+  .cal-nav strong{min-width:100px;font-size:13px}
+  .week-plan-row{grid-template-columns:64px minmax(0,1fr);gap:6px;padding:7px}
+  .week-plan-tags{grid-column:2;justify-self:start;justify-content:flex-start}
+  .compare-grid{grid-template-columns:minmax(78px,1.4fr) repeat(3,minmax(52px,1fr))}
+  .compare-grid>*{padding:7px 5px;font-size:11px}
+  .compare-grid>.compare-val{font-size:12px}
+  .today-plan .btn-subtle{width:100%;justify-content:center}
 }

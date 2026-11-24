@@ -377,8 +377,12 @@
   var LS_LANG = (Storage.KEYS && Storage.KEYS.LANG) || 'pulsefit_lang';
   var LS_CONFIG = (Storage.KEYS && Storage.KEYS.CONFIG) || 'pulsefit_routine_config';
   var LS_CARDIO_CONFIG = (Storage.KEYS && Storage.KEYS.CARDIO_CONFIG) || 'pulsefit_cardio_config';
+  var LS_PLAN = (Storage.KEYS && Storage.KEYS.PLAN) || 'pulsefit_weekly_plan';
+  var LS_MEASURES = (Storage.KEYS && Storage.KEYS.MEASURES) || 'pulsefit_body_measures';
+  var LS_MEASURE_UNIT = (Storage.KEYS && Storage.KEYS.MEASURE_UNIT) || 'pulsefit_measure_unit';
   var LS_NOTIF_ASKED = 'pulsefit_notif_asked';
-  var days = {}, lifts = {};
+  var days = {}, lifts = {}, weeklyPlan = null, measures = {}, measureUnit = 'kg';
+  var calMonth = null, selectedCalDate = null, measureMetric = 'weight';
 
   var CARDIO_EQUIPMENT_INFO = [
     { id: 'outdoor_walk', i18nKey: 'cardioEquipOutdoorWalk' },
@@ -844,6 +848,12 @@
       if (g && typeof g === 'object') {
         if (g.goal && CARDIO_GOALS[g.goal]) cardioConfig.goal = g.goal;
         if (Array.isArray(g.equipment) && g.equipment.length) cardioConfig.equipment = g.equipment;
+        ['plan', 'mode', 'enabled'].forEach(function (k) { delete cardioConfig[k]; });
+        delete cardioConfig.days;
+        if (typeof g.plan === 'string') cardioConfig.plan = g.plan;
+        if (typeof g.mode === 'string') cardioConfig.mode = g.mode;
+        if (typeof g.enabled === 'boolean') cardioConfig.enabled = g.enabled;
+        if (g.days != null) cardioConfig.days = g.days;
       }
     } catch (e) {}
   }
@@ -1446,6 +1456,7 @@
     renderTotalHistory();
     renderSelectedLifts(currentDate());
     renderLifts();
+    if (typeof renderMeasures === 'function') renderMeasures();
   }
 
   function armOrDelete(btn, kind, id) {
@@ -1468,6 +1479,9 @@
     if (kind === 'day') {
       if (Storage.deleteDay) Storage.deleteDay(days, id);
       else { delete days[id]; save(LS_DAYS, days); }
+    } else if (kind === 'measure') {
+      if (Storage.deleteMeasure) Storage.deleteMeasure(measures, id);
+      else { delete measures[id]; save(LS_MEASURES, measures); }
     } else {
       if (Storage.deleteLift) Storage.deleteLift(lifts, id);
       else { delete lifts[id]; save(LS_LIFTS, lifts); }
@@ -1506,7 +1520,9 @@
     var editLift = btn.getAttribute('data-edit-lift');
     if (editLift) { editLiftRecord(editLift); return; }
     var delLift = btn.getAttribute('data-del-lift');
-    if (delLift) { armOrDelete(btn, 'lift', delLift); }
+    if (delLift) { armOrDelete(btn, 'lift', delLift); return; }
+    var delMeasure = btn.getAttribute('data-del-measure');
+    if (delMeasure) { armOrDelete(btn, 'measure', delMeasure); }
   }
 
   document.addEventListener('click', handleHistoryAction);
@@ -1733,6 +1749,885 @@
     fillExList();
     if (editing) showEditBar();
     render();
+  }
+
+  /* ---------- plan semanal, calendario, comparación y medidas ---------- */
+  function validIso(s) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return false;
+    var p = s.split('-'), y = +p[0], m = +p[1] - 1, d = +p[2];
+    var dt = new Date(y, m, d, 12, 0, 0, 0);
+    return dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d;
+  }
+
+  function attr(s) {
+    return esc(s).replace(/'/g, '&#39;');
+  }
+
+  function defaultPlan() {
+    return { weekdays: {}, dates: {} };
+  }
+
+  function normalizePlan(p) {
+    if (Storage.normalizePlan) return Storage.normalizePlan(p);
+    var out = defaultPlan();
+    if (!p || typeof p !== 'object') return out;
+    ['weekdays', 'dates'].forEach(function (scope) {
+      var src = p[scope];
+      if (!src || typeof src !== 'object') return;
+      Object.keys(src).forEach(function (k) {
+        var e = src[k];
+        if (!e || typeof e !== 'object') return;
+        var modes = ['rest', 'cardio', 'routine', 'combo'];
+        var mode = modes.indexOf(e.mode) >= 0 ? e.mode : 'auto';
+        if (mode === 'auto') return;
+        var clean = { mode: mode, name: String(e.name || '') };
+        if (typeof e.weights === 'string' && e.weights.length <= 120) clean.weights = e.weights;
+        if (typeof e.cardio === 'boolean') clean.cardio = e.cardio;
+        else if (typeof e.cardio === 'string' && e.cardio.length <= 80) clean.cardio = e.cardio;
+        if (scope === 'weekdays') {
+          var i = parseInt(k, 10);
+          if (i >= 0 && i <= 6) out.weekdays[String(i)] = clean;
+        } else if (validIso(k)) {
+          out.dates[k] = clean;
+        }
+      });
+    });
+    return out;
+  }
+
+  var PLAN_AUTO_HINTS = {
+    es: 'pesas + cardio según lo activo',
+    en: 'follows your active weights + cardio plans',
+    pt: 'segundo os planos ativos de pesos + cardio',
+    fr: 'selon vos plans actifs musculation + cardio',
+    it: 'secondo i piani attivi pesi + cardio',
+    de: 'entspricht deinen aktiven Kraft- + Cardio-Plänen',
+    ru: 'по активным планам силовых + кардио',
+    ja: 'アクティブな筋トレ＋有酸素プランに従う'
+  };
+  var CUSTOM_ROUTINE_KEYS = [
+    'pulsefit_custom_routines', 'pulsefit_saved_routines', 'pulsefit_routine_templates',
+    'pulsefit_templates', 'pulsefit_my_routines', 'pulsefit_customRoutines', 'pulsefit_routines'
+  ];
+  var ROUTINE_NAME_KEYS = ['name', 'title', 'label', 'routineName', 'templateName', 'rutina', 'plantilla'];
+
+  function planAutoLabel() {
+    var hint = PLAN_AUTO_HINTS[curLang] || PLAN_AUTO_HINTS.es;
+    return t('planAuto') + ' (' + hint + ')';
+  }
+
+  /* ---------- plan combinado: pesas + cardio ---------- */
+  // El plan "Auto" toma la sesión de pesas de la división activa y la
+  // modalidad de cardio configurada en la pestaña Cardio. Cualquier día puede
+  // sobrescribirse con pesas, cardio, ambos o descanso desde los desplegables.
+  function cardioIsEnabled() {
+    var cfg = cardioConfig || {};
+    if (cfg.enabled === false || cfg.mode === 'off' ||
+        cfg.plan === 'off' || cfg.plan === 'none' || cfg.plan === 'disabled') return false;
+    return !!(CARDIO_GOALS[cfg.goal] && Array.isArray(cfg.equipment) && cfg.equipment.length);
+  }
+
+  function cardioPlanName() {
+    var goalName = getCardioGoalName(cardioConfig.goal);
+    return goalName ? t('tabCardio') + ' · ' + goalName : t('tabCardio');
+  }
+
+  function cardioPlanDetail(limit) {
+    var list = (cardioConfig.equipment || []).map(function (id) {
+      return getCardioEquipmentName(id, curLang);
+    }).filter(Boolean);
+    if (limit && list.length > limit) {
+      return list.slice(0, limit).join(' · ') + ' +' + (list.length - limit);
+    }
+    return list.join(' · ');
+  }
+
+  function cardioScheduledOn(wd, hasWeights) {
+    var cfg = cardioConfig || {};
+    var day = cfg.days;
+    if (Array.isArray(day)) return day.indexOf(wd) >= 0;
+    if (day === 'rest') return !hasWeights;
+    if (day && typeof day === 'object') return !!day[String(wd)];
+    if (cfg.plan === 'rest_days' || cfg.mode === 'rest_days') return !hasWeights;
+    return true;
+  }
+
+  function weightsOptionForWeekday(wd) {
+    var split = routineConfig.split;
+    if ((SPLIT_DAYS[split] || []).indexOf(wd) < 0) return null;
+    var sess = getSplitSessionInfo(split, wd) || {};
+    return {
+      name: String(sess.name || '').trim() || t('planRoutine'),
+      optionValue: 'routine:' + split + ':' + wd,
+      split: split,
+      dayKey: wd,
+      assigned: false
+    };
+  }
+
+  function explicitWeightsPart(raw, wd) {
+    if (!raw) return null;
+    var opt = raw.weights ? findRoutineOption(raw.weights) : null;
+    if (!opt && raw.name) opt = findRoutineOption(raw.name);
+    if (opt) {
+      var pieces = /^routine:([^:]+):(\d+)$/.exec(opt.value);
+      return {
+        name: opt.name,
+        optionValue: opt.value,
+        split: pieces ? pieces[1] : routineConfig.split,
+        dayKey: pieces ? +pieces[2] : wd,
+        assigned: true
+      };
+    }
+    var name = String(raw.name || '').trim();
+    if (!name) return null;
+    return {
+      name: name,
+      optionValue: '',
+      split: routineConfig.split,
+      dayKey: wd,
+      assigned: true
+    };
+  }
+
+  // Si el usuario elige "Pesas + Cardio" en un día sin sesión en la división
+  // activa, se usa la primera sesión de esa división para no perder las pesas.
+  function defaultComboWeightsPart(wd) {
+    var auto = weightsOptionForWeekday(wd);
+    if (auto) return auto;
+    var split = routineConfig.split;
+    var days = (SPLIT_DAYS[split] || []).slice().sort(function (a, b) { return (+a) - (+b); });
+    if (!days.length) return null;
+    var dayKey = days[0];
+    var sess = getSplitSessionInfo(split, dayKey) || {};
+    return {
+      name: String(sess.name || '').trim() || t('planRoutine'),
+      optionValue: 'routine:' + split + ':' + dayKey,
+      split: split,
+      dayKey: dayKey,
+      assigned: false
+    };
+  }
+
+  function buildPlanEntry(raw, wd, source) {
+    var isAuto = !raw || raw.mode === 'auto';
+    var weightsPart = null, cardioPart = null;
+    if (isAuto) {
+      weightsPart = weightsOptionForWeekday(wd);
+      if (cardioIsEnabled() && cardioScheduledOn(wd, !!weightsPart)) {
+        cardioPart = { name: cardioPlanName(), goal: cardioConfig.goal };
+      }
+    } else if (raw.mode === 'routine' || raw.mode === 'combo') {
+      weightsPart = explicitWeightsPart(raw, wd) ||
+        (raw.mode === 'combo' ? defaultComboWeightsPart(wd) : weightsOptionForWeekday(wd));
+      if (raw.mode === 'combo' || raw.cardio === true) {
+        cardioPart = { name: cardioPlanName(), goal: cardioConfig.goal };
+      }
+    } else if (raw.mode === 'cardio') {
+      cardioPart = { name: cardioPlanName(), goal: cardioConfig.goal };
+    }
+
+    var mode = weightsPart ? (cardioPart ? 'combo' : 'routine') : (cardioPart ? 'cardio' : 'rest');
+    var name;
+    if (weightsPart && cardioPart) name = weightsPart.name + ' + ' + cardioPart.name;
+    else if (weightsPart) name = weightsPart.name;
+    else if (cardioPart) name = cardioPart.name;
+    else name = t('planRest');
+
+    return {
+      mode: mode,
+      name: name,
+      auto: isAuto,
+      source: isAuto ? 'auto' : source,
+      parts: { weights: weightsPart, cardio: cardioPart }
+    };
+  }
+
+  function readStoredJson(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function pushUniqueName(list, seen, name) {
+    var value = String(name == null ? '' : name).trim();
+    if (!value || value.length > 80) return;
+    var key = value.toLocaleLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    list.push(value);
+  }
+
+  function routineNameOf(value) {
+    if (!value || typeof value !== 'object') return '';
+    for (var i = 0; i < ROUTINE_NAME_KEYS.length; i++) {
+      var k = ROUTINE_NAME_KEYS[i];
+      if (typeof value[k] === 'string' && value[k].trim()) return value[k].trim();
+    }
+    return '';
+  }
+
+  function collectCustomRoutineNames(value, out, seen, depth) {
+    if (!value || depth > 4) return;
+    if (typeof value === 'string') { pushUniqueName(out, seen, value); return; }
+    if (Array.isArray(value)) {
+      value.forEach(function (item) { collectCustomRoutineNames(item, out, seen, depth + 1); });
+      return;
+    }
+    if (typeof value !== 'object') return;
+    var name = routineNameOf(value);
+    var isRoutine = !!(value.days || value.sessions || value.exercises || value.weekdays || value.rows || value.items);
+    if (name && isRoutine) pushUniqueName(out, seen, name);
+    Object.keys(value).forEach(function (k) {
+      if (ROUTINE_NAME_KEYS.indexOf(k) >= 0) return;
+      var child = value[k];
+      if (child && typeof child === 'object') collectCustomRoutineNames(child, out, seen, depth + 1);
+    });
+  }
+
+  // Rutinas creadas/guardadas por el usuario: API pública, claves propias,
+  // nombres asignados en el plan y metadatos de sesiones guardadas.
+  function getCustomRoutineNames() {
+    var out = [], seen = {};
+    var pf = window.PulseFit || {};
+    ['customRoutines', 'savedRoutines', 'routineTemplates', 'templates', 'routines'].forEach(function (prop) {
+      if (pf[prop]) collectCustomRoutineNames(pf[prop], out, seen, 0);
+    });
+    CUSTOM_ROUTINE_KEYS.forEach(function (key) {
+      var parsed = readStoredJson(key);
+      if (parsed) collectCustomRoutineNames(parsed, out, seen, 0);
+    });
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (!key || CUSTOM_ROUTINE_KEYS.indexOf(key) >= 0) continue;
+        if (!/(custom|saved|my)[_-]?(routines?|templates?)|(routines?|templates?)[_-]?(custom|saved|my)/i.test(key)) continue;
+        var stored = readStoredJson(key);
+        if (stored) collectCustomRoutineNames(stored, out, seen, 0);
+      }
+    } catch (e) {}
+    var plan = weeklyPlan || {};
+    [plan.weekdays, plan.dates].forEach(function (scope) {
+      Object.keys(scope || {}).forEach(function (k) {
+        var e = scope[k];
+        if (e && e.mode === 'routine' && e.name) pushUniqueName(out, seen, e.name);
+      });
+    });
+    [days, lifts].forEach(function (records) {
+      Object.keys(records || {}).forEach(function (k) {
+        var r = records[k];
+        if (!r || typeof r !== 'object') return;
+        ['routine', 'rutina', 'routineName', 'template', 'plantilla'].forEach(function (prop) {
+          if (typeof r[prop] === 'string') pushUniqueName(out, seen, r[prop]);
+        });
+      });
+    });
+    if (routineConfig && routineConfig.name) pushUniqueName(out, seen, routineConfig.name);
+    return out;
+  }
+
+  // Catálogo único para ambos desplegables: sesiones reales de TODAS las
+  // divisiones disponibles + rutinas/plantillas guardadas por el usuario.
+  function getRoutineOptionCatalog() {
+    var options = [], usedNames = {}, builtInNames = {};
+
+    function splitLongName(splitKey) {
+      var key = 'split' + splitKey.charAt(0).toUpperCase() +
+        splitKey.slice(1).replace(/_([a-z])/g, function (m, p1) { return p1.toUpperCase(); });
+      var value = t(key);
+      return (typeof value === 'string' && value !== key) ? value : getSplitName(splitKey);
+    }
+
+    function add(id, name, qualifier, aliases, builtIn, forceQualify) {
+      var base = String(name || '').trim() || t('planRoutine');
+      var q = String(qualifier || '').trim();
+      var prefix = (forceQualify && q) ? base + ' · ' + q : base;
+      var finalName = prefix;
+      var n = 2;
+      while (usedNames[finalName.toLocaleLowerCase()]) {
+        finalName = prefix + ' ' + (n++);
+      }
+      usedNames[finalName.toLocaleLowerCase()] = true;
+      if (builtIn) builtInNames[finalName.toLocaleLowerCase()] = true;
+      var allAliases = [base];
+      (aliases || []).forEach(function (a) {
+        if (a && allAliases.indexOf(String(a)) < 0) allAliases.push(String(a));
+      });
+      if (builtIn) {
+        allAliases.forEach(function (a) { builtInNames[String(a).toLocaleLowerCase()] = true; });
+      }
+      options.push({ value: id, name: finalName, aliases: allAliases });
+    }
+
+    var splitKeys = Object.keys(SPLIT_DAYS);
+    if (splitKeys.indexOf(routineConfig.split) >= 0) {
+      splitKeys = [routineConfig.split].concat(splitKeys.filter(function (k) { return k !== routineConfig.split; }));
+    }
+
+    // Se agrupa primero para que los nombres no dependan del orden (ni de la
+    // división activa): "Empuje A · PPL" sigue siendo el mismo al cambiar de split.
+    var raw = [];
+    splitKeys.forEach(function (splitKey) {
+      var splitName = getSplitName(splitKey);
+      var splitOptionName = splitLongName(splitKey);
+      raw.push({
+        id: 'split:' + splitKey,
+        name: splitOptionName,
+        qualifier: '',
+        aliases: [splitOptionName, splitName]
+      });
+      var dayNames = t('dayNames') || [];
+      (SPLIT_DAYS[splitKey] || []).slice().sort(function (a, b) { return (+a) - (+b); }).forEach(function (dayKey) {
+        var sess = getSplitSessionInfo(splitKey, dayKey) || {};
+        var dayName = dayNames[dayKey] || String((+dayKey) + 1);
+        var name = String(sess.name || '').trim() || (splitName + ' · ' + dayName);
+        raw.push({
+          id: 'routine:' + splitKey + ':' + dayKey,
+          name: name,
+          qualifier: splitName,
+          aliases: [name]
+        });
+      });
+    });
+
+    var counts = {};
+    raw.forEach(function (o) {
+      var k = o.name.toLocaleLowerCase();
+      counts[k] = (counts[k] || 0) + 1;
+    });
+    raw.forEach(function (o) {
+      add(o.id, o.name, o.qualifier, o.aliases, true,
+        counts[o.name.toLocaleLowerCase()] > 1 && !!o.qualifier);
+    });
+
+    getCustomRoutineNames().forEach(function (name) {
+      var base = String(name || '').trim();
+      if (!base || builtInNames[base.toLocaleLowerCase()] || usedNames[base.toLocaleLowerCase()]) return;
+      add('routine:custom:' + (options.length + 1), base, '', [base], false, false);
+    });
+
+    return options;
+  }
+
+  function findRoutineOption(valueOrName) {
+    var options = getRoutineOptionCatalog();
+    var raw = String(valueOrName == null ? '' : valueOrName);
+    var i, opt;
+    for (i = 0; i < options.length; i++) {
+      if (options[i].value === raw) return options[i];
+    }
+    var legacy = /^routine:(\d+)$/.exec(raw);
+    if (legacy) {
+      var activePrefix = 'routine:' + routineConfig.split + ':';
+      var activeOptions = options.filter(function (o) { return o.value.indexOf(activePrefix) === 0; });
+      return activeOptions[+legacy[1]] || options[+legacy[1]] || null;
+    }
+    var needle = raw.trim().toLocaleLowerCase();
+    if (!needle) return null;
+    var activeKeys = ['routine:' + routineConfig.split + ':', 'split:' + routineConfig.split];
+    for (var pass = 0; pass < 2; pass++) {
+      for (i = 0; i < options.length; i++) {
+        opt = options[i];
+        var isActive = activeKeys.some(function (prefix) { return opt.value.indexOf(prefix) === 0; });
+        if ((pass === 0) !== isActive) continue;
+        if (opt.name.toLocaleLowerCase() === needle ||
+            opt.aliases.some(function (a) { return String(a).toLocaleLowerCase() === needle; })) return opt;
+      }
+    }
+    return null;
+  }
+
+  function planModeName(raw) {
+    if (!raw || raw.mode === 'auto') return t('planAuto');
+    if (raw.mode === 'rest') return t('planRest');
+    if (raw.mode === 'cardio') return cardioPlanName();
+    if (raw.mode === 'combo') {
+      var w = explicitWeightsPart(raw, 0) || defaultComboWeightsPart(0);
+      return w ? (w.name + ' + ' + cardioPlanName()) : (t('tabWeights') + ' + ' + t('tabCardio'));
+    }
+    var opt = raw.weights ? findRoutineOption(raw.weights) : (raw.name ? findRoutineOption(raw.name) : null);
+    return (opt && opt.name) || raw.name || t('planRoutine');
+  }
+
+  function optionName(value) {
+    if (value === 'auto') return t('planAuto');
+    if (value === 'rest') return t('planRest');
+    if (value === 'cardio') return t('tabCardio');
+    if (value === 'combo') return t('tabWeights') + ' + ' + t('tabCardio');
+    var opt = findRoutineOption(value);
+    return opt ? opt.name : t('planRoutine');
+  }
+
+  // Todas las opciones siguen disponibles en el editor del calendario y en el
+  // plan semanal: Auto, Descanso, Cardio, Pesas + Cardio, divisiones completas
+  // (Full Body, Torso/Pierna, PPL, ...) y cada sesión A/B/C de esas divisiones.
+  function planOptionsHtml(selected, includeAuto) {
+    var html = includeAuto ? '<option value="auto"' + (selected === 'auto' ? ' selected' : '') + '>' + esc(planAutoLabel()) + '</option>' : '';
+    html += '<option value="rest"' + (selected === 'rest' ? ' selected' : '') + '>' + esc(t('planRest')) + '</option>';
+    html += '<option value="cardio"' + (selected === 'cardio' ? ' selected' : '') + '>' + esc(t('tabCardio')) + '</option>';
+    html += '<option value="combo"' + (selected === 'combo' ? ' selected' : '') + '>' + esc(optionName('combo')) + '</option>';
+    getRoutineOptionCatalog().forEach(function (opt) {
+      html += '<option value="' + attr(opt.value) + '"' + (selected === opt.value ? ' selected' : '') + '>' + esc(opt.name) + '</option>';
+    });
+    return html;
+  }
+
+  function weekdayPlanEntry(wd) {
+    return buildPlanEntry(weeklyPlan.weekdays[wd], wd, 'weekday');
+  }
+
+  function resolvePlanEntry(dateIso) {
+    var key = validIso(dateIso) ? dateIso : todayIso();
+    var wd = dow(parse(key));
+    var override = weeklyPlan.dates[key];
+    if (override && override.mode && override.mode !== 'auto') {
+      return buildPlanEntry(override, wd, 'date');
+    }
+    return weekdayPlanEntry(wd);
+  }
+
+  function planValueOf(entry) {
+    if (entry.auto) return 'auto';
+    if (entry.mode === 'rest' || entry.mode === 'cardio' || entry.mode === 'combo') return entry.mode;
+    var w = entry.parts && entry.parts.weights;
+    if (w && w.optionValue) {
+      var chosen = findRoutineOption(w.optionValue);
+      if (chosen) return chosen.value;
+    }
+    var opt = findRoutineOption(entry.name);
+    return opt ? opt.value : 'auto';
+  }
+
+  function savePlanValue(scope, key, value) {
+    var target = (scope === 'dates') ? weeklyPlan.dates : weeklyPlan.weekdays;
+    if (value === 'auto') {
+      delete target[key];
+    } else if (value === 'rest' || value === 'cardio') {
+      target[key] = { mode: value, name: '' };
+    } else if (value === 'combo') {
+      target[key] = { mode: 'combo', name: '', cardio: true };
+    } else {
+      target[key] = { mode: 'routine', name: optionName(value), weights: value };
+    }
+    window.PulseFit.weeklyPlan = weeklyPlan;
+    if (Storage.savePlan) Storage.savePlan(weeklyPlan); else save(LS_PLAN, weeklyPlan);
+  }
+
+  function trainedOn(dateIso) {
+    if (did(dateIso)) return true;
+    return !!(Storage.getLiftsByDate && Storage.getLiftsByDate(lifts, dateIso).length);
+  }
+
+  function renderCalendar() {
+    var grid = $('calGrid');
+    if (!grid) return;
+    var base = calMonth || new Date(today().getFullYear(), today().getMonth(), 1, 12);
+    var y = base.getFullYear(), m = base.getMonth();
+    if ($('calTitle')) {
+      $('calTitle').textContent = base.toLocaleDateString(LOCALE[curLang] || 'es-ES', { month: 'long', year: 'numeric' });
+    }
+    if ($('calWeekdays')) {
+      var letters = t('weekLetters') || ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+      $('calWeekdays').innerHTML = letters.map(function (l) { return '<span>' + esc(l) + '</span>'; }).join('');
+    }
+    var first = new Date(y, m, 1, 12), start = addDays(first, -dow(first));
+    var ts = todayIso(), html = '';
+    for (var i = 0; i < 42; i++) {
+      var d = addDays(start, i), s = iso(d);
+      var p = resolvePlanEntry(s);
+      var cls = 'cal-day' + (d.getMonth() !== m ? ' other' : '') + (trainedOn(s) ? ' trained' : '') +
+        (p.mode === 'rest' ? ' rest' : '') + (p.mode === 'combo' ? ' combo' : '') +
+        (s === ts ? ' today' : '') + (s === selectedCalDate ? ' selected' : '');
+      var mark = trainedOn(s) ? '✓' : (p.mode === 'rest' ? '–' : (p.mode === 'combo' ? '+' : '·'));
+      html += '<button type="button" class="' + cls + '" data-cal-date="' + attr(s) + '"' +
+        ' title="' + attr(p.name) + '" aria-label="' + attr(fmtDate(s) + ' · ' + p.name) + '"><span class="cal-num">' + d.getDate() + '</span>' +
+        '<span class="cal-mark" aria-hidden="true">' + mark + '</span></button>';
+    }
+    grid.innerHTML = html;
+    renderCalendarDayEditor();
+  }
+
+  function renderCalendarDayEditor() {
+    var box = $('calDayEditor');
+    if (!box) return;
+    if (!selectedCalDate) { box.hidden = true; return; }
+    box.hidden = false;
+    var entry = resolvePlanEntry(selectedCalDate);
+    if ($('calDayLabel')) $('calDayLabel').textContent = fmtDate(selectedCalDate);
+    if ($('calDayPlanSelect')) $('calDayPlanSelect').innerHTML = planOptionsHtml(planValueOf(entry), true);
+    if ($('calDayClear')) $('calDayClear').hidden = !weeklyPlan.dates[selectedCalDate];
+    if ($('calDaySummary')) {
+      var summary = t('planCurrent') + ': ' + entry.name;
+      if (entry.parts && entry.parts.cardio) {
+        summary += ' · ' + t('planCardioAssigned') + ': ' + getCardioGoalName(entry.parts.cardio.goal || cardioConfig.goal);
+        var equipDetail = cardioPlanDetail(3);
+        if (equipDetail) summary += ' (' + equipDetail + ')';
+      }
+      if (entry.source === 'auto') summary += ' · ' + t('planAuto');
+      else if (entry.source === 'date') summary += ' · ' + t('planSpecificDay');
+      if (trainedOn(selectedCalDate)) summary += ' · ' + t('planLegendTrained');
+      $('calDaySummary').textContent = summary;
+    }
+  }
+
+  // Un chip por parte del plan (pesas y cardio) evita concatenaciones largas
+  // que antes se cortaban con "..." en la columna derecha del plan semanal.
+  function weekPlanTagsHtml(entry) {
+    var chips = [], parts = entry.parts || {};
+    var cardioName = (parts.cardio && parts.cardio.name) ? parts.cardio.name : t('tabCardio');
+    if (parts.weights && parts.weights.name) {
+      chips.push({ label: parts.weights.name, title: parts.weights.name });
+    }
+    if (parts.cardio) {
+      // Con pesas, el chip de cardio queda corto ("Cardio"); el detalle del
+      // objetivo se conserva en el tooltip. Si es solo cardio, se muestra
+      // completo ("Cardio · Quema de Grasa") y se ajusta con white-space:normal.
+      chips.push({ label: parts.weights ? t('tabCardio') : cardioName, title: cardioName });
+    }
+    if (!chips.length) {
+      var fallback = entry.name || t('planRest');
+      chips.push({ label: fallback, title: fallback });
+    }
+    var cls = 'tag ' + (entry.mode === 'rest' ? 'no' : 'yes');
+    return chips.map(function (chip) {
+      return '<span class="' + cls + '" title="' + attr(chip.title) + '">' + esc(chip.label) + '</span>';
+    }).join('');
+  }
+
+  function renderWeekPlanner() {
+    var box = $('weekPlan');
+    if (!box) return;
+    var names = t('dayNames') || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    var monday = addDays(today(), -dow(today())), wdToday = dow(today());
+    box.innerHTML = names.map(function (name, i) {
+      var entry = weekdayPlanEntry(i);
+      var dateIso = iso(addDays(monday, i));
+      return '<div class="week-plan-row' + (i === wdToday ? ' today' : '') + '">' +
+        '<span class="plan-day">' + esc(name) + '</span>' +
+        '<select data-week-day="' + i + '" aria-label="' + attr(name + ' · ' + t('planDayPlan')) + '">' +
+          planOptionsHtml(planValueOf(entry), true) + '</select>' +
+        '<div class="week-plan-tags">' + weekPlanTagsHtml(entry) + '</div>' +
+        '<span class="sr-only">' + esc(fmtDate(dateIso)) + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  function renderTodayPlan() {
+    var bar = $('todayPlanBar');
+    if (!bar) return;
+    var entry = resolvePlanEntry(todayIso());
+    var tag = $('todayPlanTag'), info = $('todayPlanInfo'), btn = $('btnTodayPlanGo');
+    var tagLabel = entry.mode === 'rest' ? t('planRest') :
+      (entry.mode === 'combo' ? (t('tabWeights') + ' + ' + t('tabCardio')) :
+        (entry.mode === 'cardio' ? t('tabCardio') : t('planRoutine')));
+    if (tag) {
+      tag.className = 'tag ' + (entry.mode === 'rest' ? 'no' : 'yes');
+      tag.textContent = tagLabel;
+    }
+    if (info) {
+      var text = t('planTodayPrefix') + ': ' + entry.name;
+      if (entry.parts && entry.parts.cardio) {
+        text += ' · ' + t('planCardioAssigned') + ': ' + getCardioGoalName(entry.parts.cardio.goal || cardioConfig.goal);
+      }
+      if (entry.source === 'date') text += ' · ' + t('planSpecificDay');
+      else if (entry.auto) text += ' · ' + t('planAuto');
+      if (trainedOn(todayIso())) text += ' · ' + t('planDoneToday');
+      info.textContent = text;
+    }
+    if (btn) {
+      btn.textContent = entry.mode === 'rest' ? t('btnViewPlan') :
+        (entry.mode === 'cardio' ? t('tabCardio') : t('btnViewRoutine'));
+      btn.setAttribute('data-plan-target', entry.mode === 'cardio' ? 'cardio' :
+        (entry.mode === 'routine' || entry.mode === 'combo' ? 'pesas' : 'plan'));
+    }
+  }
+
+  /* ---------- comparación de periodos ---------- */
+  function weekRange(offset) {
+    var monday = addDays(today(), -dow(today()) + (offset * 7));
+    return { start: iso(monday), end: iso(addDays(monday, 6)) };
+  }
+
+  function monthRange(offset) {
+    var now = today();
+    var first = new Date(now.getFullYear(), now.getMonth() + offset, 1, 12);
+    var last = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0, 12);
+    return { start: iso(first), end: iso(last) };
+  }
+
+  function periodStats(range) {
+    var trained = {}, minutes = 0, volume = 0;
+    Object.keys(days).forEach(function (date) {
+      var r = days[date];
+      if (!r || date < range.start || date > range.end) return;
+      if (r.exercised) trained[date] = 1;
+      minutes += num(r.minutes);
+    });
+    Object.keys(lifts).forEach(function (id) {
+      var v = lifts[id];
+      if (!v || v.date < range.start || v.date > range.end) return;
+      trained[v.date] = 1;
+      volume += num(v.series) * num(v.reps) * num(v.kg);
+    });
+    return { workouts: Object.keys(trained).length, minutes: minutes, volume: volume };
+  }
+
+  function deltaHtml(cur, prev, dec) {
+    var diff = cur - prev;
+    var cls = diff > 0 ? 'up' : (diff < 0 ? 'down' : 'flat');
+    var sign = diff > 0 ? '+' : '';
+    var pct = prev > 0 ? (diff / prev) * 100 : null;
+    var pctText = pct != null ? (sign + fmt(pct, 0) + '%') : (cur > 0 ? t('compareNew') : '0%');
+    return '<span class="delta ' + cls + '">' + sign + fmt(diff, dec) + ' · ' + pctText + '</span>';
+  }
+
+  function compareBlockHtml(title, cur, prev) {
+    var rows = [
+      { label: t('compareWorkouts'), key: 'workouts', dec: 0 },
+      { label: t('compareCardioMin'), key: 'minutes', dec: 0 },
+      { label: t('compareVolume'), key: 'volume', dec: 0 }
+    ];
+    var html = '<div class="compare-grid">' +
+      '<div class="compare-head">' + esc(title) + '</div>' +
+      '<div class="compare-head">' + esc(t('compareCurrent')) + '</div>' +
+      '<div class="compare-head">' + esc(t('comparePrevious')) + '</div>' +
+      '<div class="compare-head">' + esc(t('compareChange')) + '</div>';
+    rows.forEach(function (row) {
+      html += '<div class="compare-label">' + esc(row.label) + '</div>' +
+        '<div class="compare-val">' + fmt(cur[row.key], row.dec) + '</div>' +
+        '<div class="compare-prev">' + fmt(prev[row.key], row.dec) + '</div>' +
+        '<div>' + deltaHtml(cur[row.key], prev[row.key], row.dec) + '</div>';
+    });
+    return html + '</div>';
+  }
+
+  function renderComparison() {
+    if (!$('compareWeek') || !$('compareMonth')) return;
+    $('compareWeek').innerHTML = compareBlockHtml(t('compareWeek'), periodStats(weekRange(0)), periodStats(weekRange(-1)));
+    $('compareMonth').innerHTML = compareBlockHtml(t('compareMonth'), periodStats(monthRange(0)), periodStats(monthRange(-1)));
+  }
+
+  /* ---------- medidas corporales ---------- */
+  var MEASURE_FIELDS = [
+    { key: 'weight', label: 'labelWeight', mass: true },
+    { key: 'waist', label: 'labelWaist', mass: false },
+    { key: 'chest', label: 'labelChest', mass: false },
+    { key: 'arms', label: 'labelArms', mass: false },
+    { key: 'legs', label: 'labelLegs', mass: false }
+  ];
+
+  function loadMeasureUnit() {
+    var raw = load(LS_MEASURE_UNIT);
+    if (raw === 'lb' || (raw && raw.unit === 'lb')) return 'lb';
+    return 'kg';
+  }
+
+  function saveMeasureUnit() {
+    try { localStorage.setItem(LS_MEASURE_UNIT, measureUnit); } catch (e) {}
+  }
+
+  function convertMeasure(value, field, fromUnit, toUnit) {
+    var n = num(value);
+    if (!field.mass || fromUnit === toUnit) return n;
+    return fromUnit === 'lb' ? (n * 0.45359237) : (n / 0.45359237);
+  }
+
+  function measuresAsc() {
+    if (Storage.getMeasuresAsc) return Storage.getMeasuresAsc(measures);
+    return Object.keys(measures).map(function (id) {
+      var v = measures[id];
+      return v ? { id: id, v: v } : null;
+    }).filter(Boolean).sort(function (a, b) { return a.v.date < b.v.date ? -1 : (a.v.date > b.v.date ? 1 : 0); });
+  }
+
+  function measureSvg(points, unit) {
+    if (points.length < 2) return '<p class="chart-empty">' + esc(t('measureChartEmpty')) + '</p>';
+    var W = 600, H = 180, padX = 28, padY = 18;
+    var values = points.map(function (p) { return p.value; });
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    if (min === max) { min -= 1; max += 1; }
+    var range = max - min;
+    var spanX = W - (padX * 2), spanY = H - (padY * 2);
+    var coords = points.map(function (p, i) {
+      return {
+        x: padX + (points.length === 1 ? spanX / 2 : (i * spanX / (points.length - 1))),
+        y: padY + spanY * (1 - (p.value - min) / range)
+      };
+    });
+    var line = coords.map(function (c) { return c.x.toFixed(1) + ',' + c.y.toFixed(1); }).join(' ');
+    var area = 'M ' + coords[0].x.toFixed(1) + ',' + (H - padY) + ' L ' + line + ' L ' +
+      coords[coords.length - 1].x.toFixed(1) + ',' + (H - padY) + ' Z';
+    var grid = [0, 0.5, 1].map(function (f) {
+      var y = padY + (spanY * f);
+      var val = max - (range * f);
+      return '<line x1="' + padX + '" y1="' + y.toFixed(1) + '" x2="' + (W - padX) + '" y2="' + y.toFixed(1) +
+        '" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/>' +
+        '<text x="' + padX + '" y="' + (y - 4).toFixed(1) + '" fill="var(--muted)" font-size="10">' + esc(fmt(val, 1)) + '</text>';
+    }).join('');
+    var dots = coords.map(function (c, i) {
+      return '<circle cx="' + c.x.toFixed(1) + '" cy="' + c.y.toFixed(1) + '" r="3.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5">' +
+        '<title>' + esc(fmtDate(points[i].date) + ': ' + fmt(points[i].value, 1) + ' ' + unit) + '</title></circle>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + attr(t('measureEvolution') + ' · ' + t('labelMeasureMetric')) + '">' +
+      grid + '<path d="' + area + '" fill="var(--soft)" opacity=".7"/>' +
+      '<polyline points="' + line + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      dots +
+      '<text x="' + padX + '" y="' + (H - 3) + '" fill="var(--muted)" font-size="10" text-anchor="start">' + esc(fmtDate(points[0].date)) + '</text>' +
+      '<text x="' + (W - padX) + '" y="' + (H - 3) + '" fill="var(--muted)" font-size="10" text-anchor="end">' + esc(fmtDate(points[points.length - 1].date)) + '</text>' +
+      '</svg>';
+  }
+
+  function measureDeleteButton(id, date) {
+    var label = esc(t('btnDelete') + ' ' + date);
+    return '<div class="row-actions"><button type="button" class="icon-btn danger" data-del-measure="' + attr(id) +
+      '" aria-label="' + label + '" title="' + esc(t('btnDelete')) + '">' + ICON_DELETE + '</button></div>';
+  }
+
+  function renderMeasures() {
+    var unitSel = $('measureUnit');
+    if (unitSel) unitSel.value = measureUnit;
+    var dateEl = $('measureDate');
+    if (dateEl && !dateEl.value) dateEl.value = todayIso();
+
+    var list = measuresAsc();
+    var last = list.length ? list[list.length - 1] : null;
+    var prev = list.length > 1 ? list[list.length - 2] : null;
+
+    var lastBox = $('measureLast');
+    if (lastBox) {
+      if (!last) {
+        lastBox.innerHTML = '<p class="empty" style="padding:6px 0">' + esc(t('measureEmpty')) + '</p>';
+      } else {
+        var pills = MEASURE_FIELDS.filter(function (f) { return num(last.v[f.key]) > 0; }).map(function (f) {
+          var unit = f.mass ? measureUnit : 'cm';
+          var value = convertMeasure(last.v[f.key], f, last.v.unit || 'kg', measureUnit);
+          var html = '<span class="measure-pill">' + esc(t(f.label)) + ': ' + fmt(value, 1) + ' ' + esc(unit) + '</span>';
+          if (prev && num(prev.v[f.key]) > 0) {
+            var before = convertMeasure(prev.v[f.key], f, prev.v.unit || 'kg', measureUnit);
+            var diff = value - before;
+            var cls = diff > 0 ? 'up' : (diff < 0 ? 'down' : '');
+            if (diff !== 0) {
+              html += '<span class="measure-pill ' + cls + '">' + (diff > 0 ? '+' : '') + fmt(diff, 1) + '</span>';
+            }
+          }
+          return html;
+        }).join('');
+        lastBox.innerHTML = '<div class="measure-last-head"><strong>' + esc(t('measureLast')) + '</strong>' +
+          '<span class="tag yes">' + esc(fmtDate(last.v.date)) + '</span></div>' +
+          (pills ? '<div class="measure-pills">' + pills + '</div>' : '');
+      }
+    }
+
+    var metricSel = $('measureMetric');
+    if (metricSel) {
+      var options = MEASURE_FIELDS.map(function (f) {
+        var unit = f.mass ? measureUnit : 'cm';
+        return '<option value="' + f.key + '"' + (measureMetric === f.key ? ' selected' : '') + '>' +
+          esc(t(f.label) + ' (' + unit + ')') + '</option>';
+      }).join('');
+      if (metricSel.innerHTML !== options) metricSel.innerHTML = options;
+    }
+
+    var chartBox = $('measureChart');
+    if (chartBox) {
+      var field = MEASURE_FIELDS.filter(function (f) { return f.key === measureMetric; })[0] || MEASURE_FIELDS[0];
+      var points = list.filter(function (it) { return num(it.v[field.key]) > 0; }).map(function (it) {
+        return { date: it.v.date, value: convertMeasure(it.v[field.key], field, it.v.unit || 'kg', measureUnit) };
+      });
+      chartBox.innerHTML = measureSvg(points, field.mass ? measureUnit : 'cm');
+    }
+
+    var listBox = $('measureList');
+    if (listBox) {
+      if (!list.length) {
+        listBox.innerHTML = '<p class="empty">' + esc(t('measureEmpty')) + '</p>';
+      } else {
+        listBox.innerHTML = list.slice().reverse().map(function (it) {
+          var v = it.v;
+          var main = '<span class="hist-date">' + esc(fmtDate(v.date)) + '</span>' +
+            '<span class="hist-metrics">' + MEASURE_FIELDS.filter(function (f) { return num(v[f.key]) > 0; }).map(function (f) {
+              var value = convertMeasure(v[f.key], f, v.unit || 'kg', measureUnit);
+              return histPill(t(f.label) + ' ' + fmt(value, 1) + (f.mass ? ' ' + measureUnit : ' cm'));
+            }).join('') + '</span>';
+          return histCard(main, '', measureDeleteButton(it.id, fmtDate(v.date)));
+        }).join('');
+      }
+    }
+  }
+
+  function handlePlanEvents() {
+    if ($('calPrev')) $('calPrev').addEventListener('click', function () {
+      var base = calMonth || new Date(today().getFullYear(), today().getMonth(), 1, 12);
+      calMonth = new Date(base.getFullYear(), base.getMonth() - 1, 1, 12);
+      renderCalendar();
+    });
+    if ($('calNext')) $('calNext').addEventListener('click', function () {
+      var base = calMonth || new Date(today().getFullYear(), today().getMonth(), 1, 12);
+      calMonth = new Date(base.getFullYear(), base.getMonth() + 1, 1, 12);
+      renderCalendar();
+    });
+    if ($('calGrid')) $('calGrid').addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('[data-cal-date]') : null;
+      if (!btn) return;
+      selectedCalDate = btn.getAttribute('data-cal-date');
+      renderCalendar();
+    });
+    if ($('calDayPlanSelect')) $('calDayPlanSelect').addEventListener('change', function (e) {
+      if (!selectedCalDate) return;
+      savePlanValue('dates', selectedCalDate, e.target.value);
+      render();
+    });
+    if ($('calDayClear')) $('calDayClear').addEventListener('click', function () {
+      if (!selectedCalDate) return;
+      delete weeklyPlan.dates[selectedCalDate];
+      if (Storage.savePlan) Storage.savePlan(weeklyPlan); else save(LS_PLAN, weeklyPlan);
+      render();
+    });
+    if ($('weekPlan')) $('weekPlan').addEventListener('change', function (e) {
+      var sel = e.target && e.target.closest ? e.target.closest('[data-week-day]') : null;
+      if (!sel) return;
+      savePlanValue('weekdays', sel.getAttribute('data-week-day'), sel.value);
+      render();
+    });
+    if ($('btnTodayPlanGo')) $('btnTodayPlanGo').addEventListener('click', function () {
+      var mode = this.getAttribute('data-plan-target') || 'plan';
+      showTab(mode === 'cardio' ? 'cardio' :
+        (mode === 'pesas' || mode === 'routine' || mode === 'combo' ? 'pesas' : 'plan'));
+    });
+    if ($('measureUnit')) $('measureUnit').addEventListener('change', function (e) {
+      measureUnit = e.target.value === 'lb' ? 'lb' : 'kg';
+      saveMeasureUnit();
+      renderMeasures();
+    });
+    if ($('measureMetric')) $('measureMetric').addEventListener('change', function (e) {
+      measureMetric = e.target.value;
+      renderMeasures();
+    });
+    if ($('measureForm')) $('measureForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var ids = ['measureWeight', 'measureWaist', 'measureChest', 'measureArms', 'measureLegs'];
+      var payload = { date: $('measureDate').value, unit: measureUnit };
+      var any = false;
+      ids.forEach(function (id) {
+        var el = $(id);
+        if (!el || el.value === '') return;
+        var n = num(el.value);
+        if (n > 0) { payload[id.replace('measure', '').toLowerCase()] = n; any = true; }
+      });
+      if (!any) { say('measureMsg', t('measureMissing'), true); return; }
+      if (Storage.addMeasure) Storage.addMeasure(measures, payload);
+      else {
+        var id = payload.date + '-' + Math.random().toString(36).slice(2, 8);
+        payload.ts = Date.now();
+        measures[id] = payload;
+        save(LS_MEASURES, measures);
+      }
+      ids.forEach(function (id) { $(id).value = ''; });
+      $('measureDate').value = todayIso();
+      render();
+      say('measureMsg', t('measureSaved'));
+    });
   }
 
   /* ---------- cardio ---------- */
@@ -2066,6 +2961,7 @@
       saveCardioConfig();
       renderCardioConfigPanel();
       renderSuggestedCardio();
+      renderPlanViews();
     });
   }
 
@@ -2076,6 +2972,7 @@
       renderCardioConfigPanel();
       renderSuggestedCardio();
       renderCardioActivitySelect();
+      renderPlanViews();
     });
   }
 
@@ -2086,6 +2983,7 @@
       renderCardioConfigPanel();
       renderSuggestedCardio();
       renderCardioActivitySelect();
+      renderPlanViews();
     });
   }
 
@@ -2107,6 +3005,7 @@
       renderCardioConfigPanel();
       renderSuggestedCardio();
       renderCardioActivitySelect();
+      renderPlanViews();
     });
   }
 
@@ -2218,8 +3117,8 @@
     var wd = dow(today());
     var split = routineConfig.split;
     var goal = routineConfig.goal;
-    var splitDays = SPLIT_DAYS[split] || [0];
-    var isRest = splitDays.indexOf(wd) < 0;
+    var dayNames = t('dayNames') || [];
+    var planEntry = resolvePlanEntry(todayIso());
 
     updateConfigBadge();
 
@@ -2229,8 +3128,27 @@
     var btnSync = $('btnSyncTimerText');
     if (btnSync) btnSync.textContent = goalDef.rest + 's ' + t('timerRest').toLowerCase();
 
-    if (isRest) {
-      var dayNames = t('dayNames') || [];
+    // Bloque de cardio de la pestaña Cardio; se añade al final cuando el día
+    // combina pesas y cardio (o sustituye a las pesas cuando solo toca cardio).
+    function cardioBoxHtml(part) {
+      var goalKey = (part && part.goal) || cardioConfig.goal;
+      var goalName = getCardioGoalName(goalKey);
+      var detail = cardioPlanDetail(3);
+      return '<div class="today-rest-box" style="margin-top:10px">' +
+        '<h3 style="color:var(--fg);font-size:15px;margin:0">' +
+          esc((dayNames[wd] || '') + ' · ' + ((part && part.name) || cardioPlanName())) + '</h3>' +
+        '<p class="msg" style="margin:4px 0 0">' + esc(t('planCardioAssigned') + ': ' + goalName + (detail ? ' · ' + detail : '')) + '</p>' +
+        '<button type="button" class="btn-quick-log" style="margin-top:8px" onclick="window.PulseFit.showTab(\'cardio\')">' +
+          esc(t('tabCardio')) + '</button>' +
+        '</div>';
+    }
+
+    if (planEntry.mode === 'cardio') {
+      body.innerHTML = cardioBoxHtml(planEntry.parts.cardio);
+      return;
+    }
+
+    if (planEntry.mode === 'rest') {
       var note = (t('splitNotes') && t('splitNotes')[split]) || t('rtNote');
       body.innerHTML =
         '<div class="today-rest-box">' +
@@ -2241,40 +3159,50 @@
       return;
     }
 
-    var sess = getSplitSessionInfo(split, wd);
-    var dayExs = getDayExercises(split, wd, routineConfig.equipment, goal);
-    var dayNames = t('dayNames') || [];
+    var weightsPart = (planEntry.parts && planEntry.parts.weights) || null;
+    var exSplit = (weightsPart && weightsPart.split) || split;
+    var exDay = (weightsPart && weightsPart.dayKey != null) ? weightsPart.dayKey : wd;
+    if (!SPLIT_DAYS[exSplit]) { exSplit = split; exDay = wd; }
+    var sess = getSplitSessionInfo(exSplit, exDay) || {};
+    var dayExs = getDayExercises(exSplit, exDay, routineConfig.equipment, goal);
+    var assigned = !!(weightsPart && weightsPart.assigned);
+    var displayName = (weightsPart && weightsPart.name) || sess.name || t('planRoutine');
+    var subText = assigned ? t('planAssignedNote') : (sess.sub || '');
     var dayHeaderHtml = '<div style="margin-bottom:6px"><h3 style="color:var(--fg);font-size:15px;margin:0">' +
-      esc((dayNames[wd] || '') + ' · ' + sess.name) + '</h3><p class="rt-sub" style="margin:2px 0 6px">' + esc(sess.sub) + '</p></div>';
+      esc((dayNames[wd] || '') + ' · ' + displayName) + '</h3><p class="rt-sub" style="margin:2px 0 6px">' +
+      esc(subText) + '</p></div>';
 
+    var html;
     if (!dayExs.length) {
-      body.innerHTML = dayHeaderHtml + '<p class="msg" style="margin:6px 0">' + esc(t('noExercisesAvailable')) + '</p>';
-      return;
+      var emptyNote = assigned ? (t('planAssignedNote') + ' · ' + t('btnViewRoutine')) : t('noExercisesAvailable');
+      html = dayHeaderHtml + '<p class="msg" style="margin:6px 0">' + esc(emptyNote) + '</p>';
+    } else {
+      var rowsHtml = dayExs.map(function (ex) {
+        var exObj = EX_NAME_MAP[ex.key];
+        var exName = getExerciseName(ex.key, curLang);
+        var muscleStr = exObj ? getMuscleName(exObj.muscle) : '';
+        var equipStr = exObj && exObj.equipment && exObj.equipment.length ? exObj.equipment.map(getEquipmentName).join(' + ') : '';
+        var metaStr = [muscleStr, equipStr].filter(Boolean).join(' · ');
+        var repUnits = t('repUnits') || {};
+        var unitSuffix = ex.perSide && repUnits.perSide ? ' ' + repUnits.perSide : '';
+        var targetStr = ex.setsReps + unitSuffix;
+
+        return '<div class="today-ex-row">' +
+          '<div class="today-ex-left">' +
+            '<div class="today-ex-title">' + esc(exName) + '</div>' +
+            (metaStr ? '<div class="today-ex-meta">' + esc(metaStr) + '</div>' : '') +
+          '</div>' +
+          '<div class="today-ex-right">' +
+            '<span class="today-ex-target">' + esc(targetStr) + '</span>' +
+            '<button type="button" class="btn-quick-log" onclick="window.prefillExercise(\'' + esc(ex.key) + '\')">' + esc(t('btnLogExercise')) + '</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+      html = dayHeaderHtml + '<div class="today-ex-list">' + rowsHtml + '</div>';
     }
 
-    var rowsHtml = dayExs.map(function (ex) {
-      var exObj = EX_NAME_MAP[ex.key];
-      var exName = getExerciseName(ex.key, curLang);
-      var muscleStr = exObj ? getMuscleName(exObj.muscle) : '';
-      var equipStr = exObj && exObj.equipment && exObj.equipment.length ? exObj.equipment.map(getEquipmentName).join(' + ') : '';
-      var metaStr = [muscleStr, equipStr].filter(Boolean).join(' · ');
-      var repUnits = t('repUnits') || {};
-      var unitSuffix = ex.perSide && repUnits.perSide ? ' ' + repUnits.perSide : '';
-      var targetStr = ex.setsReps + unitSuffix;
-
-      return '<div class="today-ex-row">' +
-        '<div class="today-ex-left">' +
-          '<div class="today-ex-title">' + esc(exName) + '</div>' +
-          (metaStr ? '<div class="today-ex-meta">' + esc(metaStr) + '</div>' : '') +
-        '</div>' +
-        '<div class="today-ex-right">' +
-          '<span class="today-ex-target">' + esc(targetStr) + '</span>' +
-          '<button type="button" class="btn-quick-log" onclick="window.prefillExercise(\'' + esc(ex.key) + '\')">' + esc(t('btnLogExercise')) + '</button>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-
-    body.innerHTML = dayHeaderHtml + '<div class="today-ex-list">' + rowsHtml + '</div>';
+    if (planEntry.parts && planEntry.parts.cardio) html += cardioBoxHtml(planEntry.parts.cardio);
+    body.innerHTML = html;
   }
 
   function renderRoutine() {
@@ -2636,6 +3564,11 @@
       renderConfigPanel();
       renderTodayRoutine();
       renderRoutine();
+      // El plan semanal y el resumen "Plan de hoy" siguen los días/sesiones
+      // reales de la división activa, incluso en las opciones "Auto".
+      renderTodayPlan();
+      renderCalendar();
+      renderWeekPlanner();
     });
   }
 
@@ -2701,8 +3634,22 @@
     });
   }
 
+  // Las vistas del plan dependen de las dos pestañas: al cambiar pesas o
+  // cardio hay que actualizarlas todas para que no queden desincronizadas.
+  function renderPlanViews() {
+    renderTodayPlan();
+    renderCalendar();
+    renderWeekPlanner();
+    renderTodayRoutine();
+  }
+
   function render() {
     updateWorkoutDateUI();
+    renderTodayPlan();
+    renderCalendar();
+    renderWeekPlanner();
+    renderComparison();
+    renderMeasures();
     renderDays();
     renderCardioConfigPanel();
     renderSuggestedCardio();
@@ -3125,7 +4072,7 @@
   window.addEventListener('focus', syncTimerOnResume);
 
   /* ---------- pestañas ---------- */
-  var TABS = ['cardio', 'pesas', 'total'];
+  var TABS = ['cardio', 'pesas', 'total', 'plan'];
   function showTab(name) {
     if (name === 'caminata') name = 'cardio';
     if (TABS.indexOf(name) < 0) name = 'cardio';
@@ -3176,6 +4123,9 @@
   }
   loadConfig();
   loadCardioConfig();
+  weeklyPlan = normalizePlan(Storage.loadPlan ? Storage.loadPlan() : load(LS_PLAN));
+  measures = (Storage.loadMeasures ? Storage.loadMeasures() : load(LS_MEASURES)) || {};
+  measureUnit = loadMeasureUnit();
 
   // Exponer API y referencias en PulseFit
   window.PulseFit.getState = function () {
@@ -3184,7 +4134,10 @@
       lifts: lifts,
       curLang: curLang,
       routineConfig: routineConfig,
-      cardioConfig: cardioConfig
+      cardioConfig: cardioConfig,
+      weeklyPlan: weeklyPlan,
+      measures: measures,
+      measureUnit: measureUnit
     };
   };
   window.PulseFit.getDays = function () { return days; };
@@ -3202,12 +4155,44 @@
     if (c.split && SPLIT_DAYS[c.split]) routineConfig.split = c.split;
     if (Array.isArray(c.equipment) && c.equipment.length) routineConfig.equipment = c.equipment;
     saveConfig();
+    renderConfigPanel();
+    renderTodayRoutine();
+    renderRoutine();
+    renderTodayPlan();
+    renderCalendar();
+    renderWeekPlanner();
   };
   window.PulseFit.setCardioConfig = function (c) {
+    c = c || {};
     if (c.goal && CARDIO_GOALS[c.goal]) cardioConfig.goal = c.goal;
     if (Array.isArray(c.equipment) && c.equipment.length) cardioConfig.equipment = c.equipment;
+    ['plan', 'mode', 'enabled'].forEach(function (k) {
+      if (typeof c[k] === 'string' || typeof c[k] === 'boolean') cardioConfig[k] = c[k];
+      else delete cardioConfig[k];
+    });
+    if (c.days != null) cardioConfig.days = c.days;
+    else delete cardioConfig.days;
     saveCardioConfig();
+    renderCardioConfigPanel();
+    renderSuggestedCardio();
+    renderCardioActivitySelect();
+    renderPlanViews();
   };
+  window.PulseFit.setPlan = function (p) {
+    weeklyPlan = normalizePlan(p);
+    window.PulseFit.weeklyPlan = weeklyPlan;
+  };
+  window.PulseFit.setMeasures = function (m) {
+    measures = (m && typeof m === 'object') ? m : {};
+    window.PulseFit.measures = measures;
+  };
+  window.PulseFit.setMeasureUnit = function (u) {
+    measureUnit = (u === 'lb') ? 'lb' : 'kg';
+    window.PulseFit.measureUnit = measureUnit;
+  };
+  window.PulseFit.showTab = showTab;
+  window.PulseFit.resolvePlanEntry = resolvePlanEntry;
+  window.PulseFit.planOptionsHtml = planOptionsHtml;
   window.PulseFit.applyLang = applyLang;
   window.PulseFit.requestNotifPermission = requestNotifPermission;
   window.PulseFit.render = render;
@@ -3228,7 +4213,11 @@
   window.PulseFit.lifts = lifts;
   window.PulseFit.routineConfig = routineConfig;
   window.PulseFit.cardioConfig = cardioConfig;
+  window.PulseFit.weeklyPlan = weeklyPlan;
+  window.PulseFit.measures = measures;
+  window.PulseFit.measureUnit = measureUnit;
 
+  handlePlanEvents();
   renderCardioDetailBuilder();
   renderLiftMuscleSelect();
   renderLiftExerciseSelect({ keepSelection: false });

@@ -11,18 +11,20 @@
   var LS_PLAN = 'pulsefit_weekly_plan';
   var LS_MEASURES = 'pulsefit_body_measures';
   var LS_MEASURE_UNIT = 'pulsefit_measure_unit';
+  var LS_TEMPLATES = 'pulsefit_routine_templates_v2';
 
   /* ---------- Capa IndexedDB (Etapa 1) ----------
      Espejo completo de localStorage en IndexedDB + store de archivos para
      imagenes/recortes sin el limite de 5 MB. La API sincrona no cambia. */
   var DB_NAME = 'pulsefit_db';
-  var DB_VERSION = 1;
-  var SCHEMA_VERSION = 3;
+  var DB_VERSION = 2;
+  var SCHEMA_VERSION = 4;
   var STORE_STATE = 'state';
   var STORE_FILES = 'files';
+  var STORE_TEMPLATES = 'templates'; // Etapa 2: plantillas con id propio en IndexedDB.
   var STATE_KEY = 'main';
   var dbPromise = null, idbReady = false, idbFailed = false;
-  var initPromise = null, writeChain = Promise.resolve(), memoryBackup = null;
+  var initPromise = null, writeChain = Promise.resolve(), templateChain = Promise.resolve(), memoryBackup = null;
 
   function idbOpen() {
     if (dbPromise) return dbPromise;
@@ -33,6 +35,7 @@
         var db = req.result;
         if (!db.objectStoreNames.contains(STORE_STATE)) db.createObjectStore(STORE_STATE);
         if (!db.objectStoreNames.contains(STORE_FILES)) db.createObjectStore(STORE_FILES, { keyPath: 'id' });
+        if (!db.objectStoreNames.contains(STORE_TEMPLATES)) db.createObjectStore(STORE_TEMPLATES, { keyPath: 'id' });
       };
       req.onsuccess = function () { idbReady = true; resolve(req.result); };
       req.onerror = function () { idbFailed = true; reject(req.error || new Error('No se pudo abrir IndexedDB')); };
@@ -262,6 +265,7 @@
       // `weights` guarda la opción elegida (sesión/división) y `cardio`
       // permite añadir/quitar la sesión de cardio a una jornada concreta.
       if (typeof e.weights === 'string' && e.weights.length <= 120) clean.weights = e.weights;
+      if (typeof e.templateId === 'string' && e.templateId.length <= 80) clean.templateId = e.templateId;
       if (typeof e.cardio === 'boolean') clean.cardio = e.cardio;
       else if (typeof e.cardio === 'string' && e.cardio.length <= 80) clean.cardio = e.cardio;
       return clean;
@@ -324,17 +328,97 @@
     }).filter(Boolean), function (it) { return it.v.date; });
   }
 
-  // Reinicio explícito: se van también las claves nuevas (plan, medidas y unidad).
+  /* ---------- plantillas de rutinas (Etapa 2) ---------- */
+  // Las plantillas viven en su propio store de IndexedDB y se espejan en
+  // localStorage para que export/import funcione sin cambios de formato.
+  function normalizeTemplate(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    var id = (typeof raw.id === 'string' && raw.id) ? raw.id :
+      ('tpl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7));
+    var name = String(raw.name || '').trim().slice(0, 80);
+    if (!name) return null;
+    var sessions = [];
+    if (Array.isArray(raw.sessions)) {
+      raw.sessions.slice(0, 40).forEach(function (s) {
+        if (!s || typeof s !== 'object') return;
+        var exercises = [];
+        if (Array.isArray(s.exercises)) {
+          s.exercises.slice(0, 30).forEach(function (ex) {
+            if (!ex || typeof ex !== 'object') return;
+            var exName = String(ex.name || '').trim().slice(0, 120);
+            var key = String(ex.key || '').slice(0, 80);
+            if (!exName && !key) return;
+            exercises.push({
+              key: key,
+              name: exName || key,
+              sets: Math.max(0, Math.min(99, Number(ex.sets) || 0)),
+              reps: Math.max(0, Math.min(999, Number(ex.reps) || 0)),
+              setsReps: String(ex.setsReps || '').slice(0, 40)
+            });
+          });
+        }
+        sessions.push({
+          dayKey: Number.isInteger(s.dayKey) ? s.dayKey : null,
+          name: String(s.name || '').trim().slice(0, 80),
+          exercises: exercises
+        });
+      });
+    }
+    return {
+      id: String(id).slice(0, 80),
+      name: name,
+      source: String(raw.source || '').slice(0, 80),
+      split: String(raw.split || '').slice(0, 40),
+      goal: String(raw.goal || '').slice(0, 40),
+      createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
+      sessions: sessions
+    };
+  }
+
+  function loadTemplates() {
+    var raw = load(LS_TEMPLATES);
+    var list = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.templates) ? raw.templates : []);
+    return list.map(normalizeTemplate).filter(Boolean);
+  }
+
+  function saveTemplates(list) {
+    var clean = (Array.isArray(list) ? list : []).map(normalizeTemplate).filter(Boolean);
+    save(LS_TEMPLATES, clean);
+    templateChain = templateChain.then(function () { return idbOpen(); }).then(function (db) {
+      return idbRequest(db, STORE_TEMPLATES, 'readwrite', function (os) {
+        os.clear();
+        clean.forEach(function (tpl) { os.put(tpl); });
+      });
+    }).catch(function () { idbFailed = true; });
+    return templateChain;
+  }
+
+  function loadTemplatesFromIDB() {
+    return idbGetAll(STORE_TEMPLATES).then(function (rows) {
+      return (rows || []).map(normalizeTemplate).filter(Boolean);
+    }).catch(function () { return []; });
+  }
+
+  function clearTemplatesIDB() {
+    templateChain = templateChain.then(function () { return idbOpen(); }).then(function (db) {
+      return idbRequest(db, STORE_TEMPLATES, 'readwrite', function (os) { os.clear(); });
+    }).catch(function () { idbFailed = true; });
+    return templateChain;
+  }
+
+  // Reinicio explícito: se van también las claves nuevas (plan, medidas, unidad y plantillas).
   function resetAllData() {
-    [LS_DAYS, LS_LIFTS, LS_CONFIG, LS_CARDIO_CONFIG, LS_PLAN, LS_MEASURES, LS_MEASURE_UNIT].forEach(function (k) {
+    [LS_DAYS, LS_LIFTS, LS_CONFIG, LS_CARDIO_CONFIG, LS_PLAN, LS_MEASURES, LS_MEASURE_UNIT, LS_TEMPLATES].forEach(function (k) {
       try { localStorage.removeItem(k); } catch (e) {}
     });
+    clearTemplatesIDB();
     var pf = window.PulseFit || {};
     if (pf.setDays) pf.setDays({});
     if (pf.setLifts) pf.setLifts({});
     if (pf.setPlan) pf.setPlan(defaultPlan());
     if (pf.setMeasures) pf.setMeasures({});
     if (pf.setMeasureUnit) pf.setMeasureUnit('kg');
+    if (pf.setTemplates) pf.setTemplates([]);
     if (pf.render) pf.render();
     writeIDB(dumpLocal());
     var sayFn = pf.say || function () {};
@@ -383,6 +467,10 @@
         if (g.goal && (!validGoals || validGoals[g.goal])) targetConfig.goal = g.goal;
         if (g.split && (!validSplits || validSplits[g.split])) targetConfig.split = g.split;
         if (Array.isArray(g.equipment) && g.equipment.length) targetConfig.equipment = g.equipment;
+        if (typeof g.name === 'string' && g.name.length <= 80) targetConfig.name = g.name;
+        else delete targetConfig.name;
+        if (typeof g.activeTemplateId === 'string' && g.activeTemplateId.length <= 80) targetConfig.activeTemplateId = g.activeTemplateId;
+        else delete targetConfig.activeTemplateId;
       }
     } catch (e) {}
     return targetConfig;
@@ -448,23 +536,28 @@
       var curPlan = state.weeklyPlan || loadPlan();
       var curMeasures = state.measures || loadMeasures();
       var curMeasureUnit = state.measureUnit || localStorage.getItem(LS_MEASURE_UNIT) || 'kg';
+      var curTemplates = state.templates || state.routineTemplates || loadTemplates();
 
       var backupData = {
         app: 'PulseFit',
         schemaVersion: SCHEMA_VERSION,
-        version: 3,
+        version: 4,
         exportDate: iso(today()),
         exportedAt: new Date().toISOString(),
         days: curDays,
         lifts: curLifts,
         weeklyPlan: curPlan,
         measures: curMeasures,
+        templates: curTemplates,
+        routineTemplates: curTemplates,
         pulsefit_lang: curLang,
         pulsefit_routine_config: curRoutineConfig,
         pulsefit_cardio_config: curCardioConfig,
         pulsefit_weekly_plan: curPlan,
         pulsefit_body_measures: curMeasures,
         pulsefit_measure_unit: curMeasureUnit,
+        pulsefit_routine_templates_v2: curTemplates,
+        pulsefit_routine_templates: curTemplates,
         localStorage: dump
       };
 
@@ -500,7 +593,7 @@
     if (!isFinite(sv) || sv < 1 || sv > SCHEMA_VERSION) {
       return { ok: false, msgText: 'La versión de esquema del respaldo no es compatible.' };
     }
-    var fields = ['days', 'lifts', 'weeklyPlan', 'measures', 'localStorage', 'pulsefit_routine_config', 'pulsefit_cardio_config'];
+    var fields = ['days', 'lifts', 'weeklyPlan', 'measures', 'templates', 'routineTemplates', 'pulsefit_routine_templates', 'pulsefit_routine_templates_v2', 'localStorage', 'pulsefit_routine_config', 'pulsefit_cardio_config'];
     if (!fields.some(function (k) { return data[k] !== undefined; })) {
       return { ok: false, msgText: 'El respaldo está incompleto: no se reconocen registros de PulseFit.' };
     }
@@ -512,6 +605,11 @@
     }
     if (data.localStorage !== undefined && (typeof data.localStorage !== 'object' || Array.isArray(data.localStorage))) {
       return { ok: false, msgText: 'El respaldo está dañado: el estado local no es válido.' };
+    }
+    var rawTemplates = data.templates || data.routineTemplates || data.pulsefit_routine_templates_v2 || data.pulsefit_routine_templates || (data.localStorage && (data.localStorage[LS_TEMPLATES] || data.localStorage.pulsefit_routine_templates || data.localStorage.pulsefit_routine_templates_v2 || data.localStorage.templates || data.localStorage.routineTemplates));
+    if (rawTemplates !== undefined && !Array.isArray(rawTemplates) &&
+        !(rawTemplates && Array.isArray(rawTemplates.templates))) {
+      return { ok: false, msgText: 'El respaldo está dañado: las plantillas no son válidas.' };
     }
     return { ok: true, version: sv };
   }
@@ -617,6 +715,23 @@
           if (window.PulseFit && window.PulseFit.setMeasureUnit) window.PulseFit.setMeasureUnit(newMeasureUnit);
         }
 
+        // Etapa 2: las plantillas viajan en el respaldo y se sincronizan con
+        // el store IndexedDB mediante el setter público de app.js.
+        var newTemplates = parsed.templates || parsed.routineTemplates || parsed.pulsefit_routine_templates_v2 || parsed.pulsefit_routine_templates || (parsed.localStorage && (parsed.localStorage[LS_TEMPLATES] || parsed.localStorage.pulsefit_routine_templates || parsed.localStorage.pulsefit_routine_templates_v2 || parsed.localStorage.templates || parsed.localStorage.routineTemplates));
+        if (Array.isArray(newTemplates) || (newTemplates && Array.isArray(newTemplates.templates))) {
+          var cleaned = (Array.isArray(newTemplates) ? newTemplates : newTemplates.templates)
+            .map(normalizeTemplate).filter(Boolean);
+          if (window.PulseFit && window.PulseFit.setTemplates) {
+            window.PulseFit.setTemplates(cleaned);
+            saveTemplates(cleaned);
+          } else {
+            saveTemplates(cleaned);
+          }
+        } else if (window.PulseFit && window.PulseFit.setTemplates) {
+          window.PulseFit.setTemplates([]);
+          saveTemplates([]);
+        }
+
         var newLang = parsed.pulsefit_lang || (parsed.localStorage && parsed.localStorage.pulsefit_lang);
         var supported = (window.PulseFit && window.PulseFit.SUPPORTED_LANGS) || ['es', 'en', 'pt', 'fr', 'it', 'de', 'ru', 'ja'];
         if (newLang && supported.indexOf(newLang) >= 0) {
@@ -640,6 +755,8 @@
           if (pf.setRoutineConfig) pf.setRoutineConfig(memState.routineConfig || {});
           if (pf.setCardioConfig) pf.setCardioConfig(memState.cardioConfig || {});
           if (pf.setMeasureUnit) pf.setMeasureUnit(memState.measureUnit || 'kg');
+          if (pf.setTemplates) pf.setTemplates(memState.templates || []);
+          saveTemplates(memState.templates || []);
           try { localStorage.setItem(LS_MEASURE_UNIT, memState.measureUnit || 'kg'); } catch (e) {}
           if (pf.applyLang && memState.curLang) pf.applyLang(memState.curLang);
           else if (pf.render) pf.render();
@@ -697,7 +814,8 @@
       CARDIO_CONFIG: LS_CARDIO_CONFIG,
       PLAN: LS_PLAN,
       MEASURES: LS_MEASURES,
-      MEASURE_UNIT: LS_MEASURE_UNIT
+      MEASURE_UNIT: LS_MEASURE_UNIT,
+      TEMPLATES: LS_TEMPLATES
     },
     load: load,
     save: save,
@@ -731,6 +849,11 @@
     addMeasure: addMeasure,
     deleteMeasure: deleteMeasure,
     getMeasuresAsc: getMeasuresAsc,
+    normalizeTemplate: normalizeTemplate,
+    normalizeTemplates: function(list){ return (Array.isArray(list)?list:[]).map(normalizeTemplate).filter(Boolean); },
+    loadTemplates: loadTemplates,
+    saveTemplates: saveTemplates,
+    loadTemplatesFromIDB: loadTemplatesFromIDB,
     resetAllData: resetAllData,
     exportBackup: exportBackup,
     handleImportFile: handleImportFile,

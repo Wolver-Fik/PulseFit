@@ -380,25 +380,65 @@
   var LS_PLAN = (Storage.KEYS && Storage.KEYS.PLAN) || 'pulsefit_weekly_plan';
   var LS_MEASURES = (Storage.KEYS && Storage.KEYS.MEASURES) || 'pulsefit_body_measures';
   var LS_MEASURE_UNIT = (Storage.KEYS && Storage.KEYS.MEASURE_UNIT) || 'pulsefit_measure_unit';
+  var LS_TEMPLATES = (Storage.KEYS && Storage.KEYS.TEMPLATES) || 'pulsefit_routine_templates_v2';
   var LS_NOTIF_ASKED = 'pulsefit_notif_asked';
   var days = {}, lifts = {}, weeklyPlan = null, measures = {}, measureUnit = 'kg';
+  var templates = [];
   var calMonth = null, selectedCalDate = null, measureMetric = 'weight';
 
+  // Opciones del configurador, separadas en dos subgrupos visuales. Se eliminaron
+  // las opciones duplicadas de ciclismo y caminata/correr, ya cubiertas por
+  // Bicicleta Exterior y Caminata / Aire Libre.
   var CARDIO_EQUIPMENT_INFO = [
-    { id: 'outdoor_walk', i18nKey: 'cardioEquipOutdoorWalk' },
-    { id: 'treadmill', i18nKey: 'cardioEquipTreadmill' },
-    { id: 'stationary_bike', i18nKey: 'cardioEquipStationaryBike' },
-    { id: 'outdoor_bike', i18nKey: 'cardioEquipOutdoorBike' },
-    { id: 'elliptical', i18nKey: 'cardioEquipElliptical' },
-    { id: 'stairmaster', i18nKey: 'cardioEquipStairmaster' },
-    { id: 'rowing_machine', i18nKey: 'cardioEquipRowingMachine' },
-    { id: 'jump_rope', i18nKey: 'cardioEquipJumpRope' }
+    { id: 'outdoor_walk', i18nKey: 'cardioEquipOutdoorWalk', group: 'machines' },
+    { id: 'treadmill', i18nKey: 'cardioEquipTreadmill', group: 'machines' },
+    { id: 'stationary_bike', i18nKey: 'cardioEquipStationaryBike', group: 'machines' },
+    { id: 'outdoor_bike', i18nKey: 'cardioEquipOutdoorBike', group: 'machines' },
+    { id: 'elliptical', i18nKey: 'cardioEquipElliptical', group: 'machines' },
+    { id: 'stairmaster', i18nKey: 'cardioEquipStairmaster', group: 'machines' },
+    { id: 'rowing_machine', i18nKey: 'cardioEquipRowingMachine', group: 'machines' },
+    { id: 'jump_rope', i18nKey: 'cardioEquipJumpRope', group: 'machines' },
+    { id: 'swimming', i18nKey: 'activitySwimming', group: 'activities' },
+    { id: 'boxing', i18nKey: 'activityBoxing', group: 'activities' },
+    { id: 'calisthenics', i18nKey: 'activityCalisthenics', group: 'activities' },
+    { id: 'yoga', i18nKey: 'activityYoga', group: 'activities' },
+    { id: 'team_sports', i18nKey: 'activityTeamSports', group: 'activities' },
+    { id: 'custom', i18nKey: 'activityCustom', group: 'activities' }
   ];
 
-  var CARDIO_PRESETS = {
-    all: ['outdoor_walk', 'treadmill', 'stationary_bike', 'outdoor_bike', 'elliptical', 'stairmaster', 'rowing_machine', 'jump_rope'],
-    home_outdoor: ['outdoor_walk', 'outdoor_bike', 'jump_rope']
+  var ALT_ACTIVITY_IDS = ['swimming', 'boxing', 'calisthenics', 'yoga', 'team_sports', 'custom'];
+
+  // MET aproximado por actividad. Se combina con la intensidad y con el peso
+  // corporal registrado para estimar las calorías automáticamente. Se conservan
+  // los ids antiguos para seguir calculando sesiones guardadas anteriormente.
+  var ACTIVITY_MET = {
+    outdoor_walk: 4.5, treadmill: 9, stationary_bike: 7.5, outdoor_bike: 7,
+    elliptical: 7, stairmaster: 8, rowing_machine: 8, jump_rope: 11,
+    swimming: 8, cycling: 7.5, running: 9.5, boxing: 9,
+    calisthenics: 6.5, yoga: 3, team_sports: 8, custom: 6, otro: 5
   };
+  var INTENSITY_MET_FACTOR = { suave: 0.75, moderada: 1, alta: 1.3 };
+
+  var CARDIO_PRESETS = {
+    all: ['outdoor_walk', 'treadmill', 'stationary_bike', 'outdoor_bike', 'elliptical', 'stairmaster', 'rowing_machine', 'jump_rope',
+      'swimming', 'boxing', 'calisthenics', 'yoga', 'team_sports', 'custom'],
+    home_outdoor: ['outdoor_walk', 'outdoor_bike', 'jump_rope', 'calisthenics', 'yoga']
+  };
+
+  // Compatibilidad: las sesiones y configuraciones guardadas con los ids
+  // duplicados se migran a las opciones canónicas que ya existen.
+  var CARDIO_LEGACY_ID_MAP = { cycling: 'outdoor_bike', running: 'outdoor_walk' };
+  var CARDIO_EQUIP_IDS = CARDIO_EQUIPMENT_INFO.map(function (it) { return it.id; });
+
+  function normalizeCardioEquipment(list) {
+    var source = Array.isArray(list) ? list : CARDIO_PRESETS.all;
+    var out = [];
+    source.forEach(function (rawId) {
+      var id = CARDIO_LEGACY_ID_MAP[rawId] || rawId;
+      if (CARDIO_EQUIP_IDS.indexOf(id) >= 0 && out.indexOf(id) < 0) out.push(id);
+    });
+    return out.length ? out : CARDIO_PRESETS.all.slice();
+  }
 
   var CARDIO_GOALS = {
     fat_loss: {
@@ -784,6 +824,7 @@
   };
 
   /* ---------- constructor dinámico de detalles de cardio ---------- */
+  // Los ids cycling/running se mantienen solo para sesiones históricas.
   var CARDIO_DETAIL_GROUP_BY_ACTIVITY = {
     treadmill: 'treadmill',
     stationary_bike: 'bike',
@@ -793,6 +834,14 @@
     outdoor_walk: 'terrain',
     outdoor_bike: 'terrain',
     jump_rope: 'terrain',
+    swimming: 'alternative',
+    cycling: 'alternative',
+    running: 'alternative',
+    boxing: 'alternative',
+    calisthenics: 'alternative',
+    yoga: 'alternative',
+    team_sports: 'alternative',
+    custom: 'alternative',
     otro: 'terrain'
   };
 
@@ -827,7 +876,9 @@
     ],
     terrain: [
       { id: 'cdTerrain', options: [['flat', 'cdTerrainFlat'], ['hill', 'cdTerrainHill'], ['fast', 'cdTerrainFast'], ['easy', 'cdTerrainEasy']], 'default': 'flat' }
-    ]
+    ],
+    // Las actividades alternativas usan el campo libre de distancia/vueltas.
+    alternative: []
   };
 
   // Guarda la última elección de cada control aunque se cambie de máquina.
@@ -841,6 +892,7 @@
   function loadCardioConfig() {
     if (Storage.loadCardioConfig) {
       Storage.loadCardioConfig(cardioConfig, CARDIO_GOALS);
+      cardioConfig.equipment = normalizeCardioEquipment(cardioConfig.equipment);
       return;
     }
     try {
@@ -856,6 +908,7 @@
         if (g.days != null) cardioConfig.days = g.days;
       }
     } catch (e) {}
+    cardioConfig.equipment = normalizeCardioEquipment(cardioConfig.equipment);
   }
 
   function saveCardioConfig() {
@@ -870,6 +923,7 @@
 
   function getCardioEquipmentName(id, lang) {
     if (id === 'otro') return t('optOtherCardio');
+    id = CARDIO_LEGACY_ID_MAP[id] || id;
     var item = CARDIO_EQUIPMENT_INFO.find(function (it) { return it.id === id; });
     if (item) return t(item.i18nKey);
     return id;
@@ -884,6 +938,54 @@
     if (val === 'suave') return t('intensityLow');
     if (val === 'alta') return t('intensityHigh');
     return t('intensityMedium');
+  }
+
+  // Etapa 2: nombre legible de la actividad (incluida la personalizada).
+  function getActivityName(actId, values) {
+    var v = values || {};
+    if (v.activityName) return String(v.activityName);
+    return getCardioEquipmentName(actId, curLang);
+  }
+
+  function syncCardioCustomField() {
+    var sel = $('cardioActivity');
+    var isCustom = !!(sel && sel.value === 'custom');
+    if ($('cardioCustomWrap')) $('cardioCustomWrap').hidden = !isCustom;
+    if ($('cardioCustomNameWrap')) $('cardioCustomNameWrap').hidden = !isCustom;
+    if (isCustom && $('cardioCustomName') && $('cardioCustomActivity') && !$('cardioCustomName').value && $('cardioCustomActivity').value) $('cardioCustomName').value = $('cardioCustomActivity').value;
+  }
+
+  // Último peso corporal registrado, convertido a kg, para estimar calorías.
+  function getBodyWeightKg() {
+    var list = measuresAsc();
+    for (var i = list.length - 1; i >= 0; i--) {
+      var rec = list[i] && list[i].v;
+      var value = rec && num(rec.weight);
+      if (value > 0) return convertMeasure(value, MEASURE_FIELDS[0], rec.unit || 'kg', 'kg');
+    }
+    return 0;
+  }
+
+  function estimateKcal(actId, minutes, intensity) {
+    var kg = getBodyWeightKg();
+    var mins = Math.max(0, num(minutes));
+    if (!kg || !mins) return { kcal: 0, kg: kg };
+    var met = ACTIVITY_MET[actId] || 5;
+    var factor = INTENSITY_MET_FACTOR[intensity] || 1;
+    return { kcal: Math.round(met * factor * kg * (mins / 60)), kg: kg };
+  }
+
+  function updateKcalEstimate() {
+    var el = $('kcalEstimate');
+    var sel = $('cardioActivity');
+    var kcalInput = $('kcal');
+    var est = estimateKcal(sel ? sel.value : '', $('minutes') ? $('minutes').value : 0,
+      $('cardioIntensity') ? $('cardioIntensity').value : 'moderada');
+    if (kcalInput && kcalInput.dataset.auto !== 'manual' && est.kcal > 0) kcalInput.value = est.kcal;
+    var text = '';
+    if (!est.kg) text = t('kcalEstimateNoWeight');
+    else if (est.kcal > 0) text = t('kcalEstimate').replace('{kcal}', fmt(est.kcal, 0)).replace('{kg}', fmt(est.kg, 1));
+    if (el) { el.textContent = text; el.hidden = !text; }
   }
 
   function getCardioProtocolText(equipId, goalKey, lang) {
@@ -965,15 +1067,23 @@
       vals[f.id] = getDetailValue(f.id);
       detailState[f.id] = vals[f.id];
     });
+    // Etapa 2: distancia/vueltas/series y nombre de actividad personalizada.
+    vals.activityDistance = $('cardioLaps') ? $('cardioLaps').value.trim() : '';
+    vals.activityName = ($('cardioActivity') && $('cardioActivity').value === 'custom' && $('cardioCustomActivity')) ?
+      $('cardioCustomActivity').value.trim() : '';
     return vals;
   }
 
   function composeCardioDetail(actId, values, lang) {
     var group = getDetailGroup(actId);
-    var name = getCardioEquipmentName(actId, lang);
+    var name = getActivityName(actId, values);
     var parts = [];
     var v = values || {};
 
+    if (group === 'alternative') {
+      if (v.activityDistance) parts.push(v.activityDistance);
+      return name + (parts.length ? ': ' + parts.join(' · ') : '');
+    }
     if (group === 'treadmill') {
       parts.push(t('cdIncline') + ' ' + t(detailOptionLabel('cdIncline', v.cdIncline)));
       if (v.cdMode === 'intervals') {
@@ -1291,17 +1401,21 @@
     if (!r) return '';
     var w = compactDict();
     var actId = r.activity || (r.detailFields && r.detailFields.activity) || '';
-    var fullName = actId ? getCardioEquipmentName(actId, curLang) : '';
-    var name = (w.names && w.names[actId]) || shortenCardioName(fullName);
+    var values = r.detailFields && r.detailFields.values;
+    var customName = values && values.activityName;
+    var fullName = customName || (actId ? getCardioEquipmentName(actId, curLang) : '');
+    var name = customName || (w.names && w.names[actId]) || shortenCardioName(fullName);
     var parts = [];
     if (name) parts.push(name);
     if (r.intensity) parts.push(getIntensityLabel(r.intensity));
+    if (r.distance) parts.push(r.distance);
 
-    var values = r.detailFields && r.detailFields.values;
     if (values && typeof values === 'object' && Object.keys(values).length) {
       var group = getDetailGroup(actId);
       var seg = [];
-      if (group === 'treadmill') {
+      if (group === 'alternative') {
+        if (values.activityDistance && values.activityDistance !== r.distance) seg.push(values.activityDistance);
+      } else if (group === 'treadmill') {
         if (w.incline[values.cdIncline]) seg.push(w.incline[values.cdIncline] + ' ' + w.inclineSuffix);
         var mode = values.cdMode === 'intervals' ? w.modes.intervals : w.modes.continuous;
         if (values.cdMode === 'intervals' && values.cdSpeedBase && values.cdSpeedPeak) {
@@ -1544,7 +1658,8 @@
     }
     box.innerHTML = list.map(function (it) {
       var v = it.v;
-      return '<div class="selected-lift"><div class="what">' + esc(v.ejercicio) +
+      return '<div class="selected-lift"><div class="what">' +
+        exerciseLink(v.exerciseKey || v.ejercicio, exerciseDisplayName(v.ejercicio)) +
         ' <small>· ' + esc(getTypeLabel(v.tipo)) + '</small><br>' +
         fmt(num(v.series), 0) + ' × ' + fmt(num(v.reps), 0) + ' ' + t('withConnector') + ' ' + fmt(num(v.kg), 1) + ' kg</div>' +
         actionButtons('lift', it.id, v.ejercicio) + '</div>';
@@ -1749,6 +1864,7 @@
     fillExList();
     if (editing) showEditBar();
     render();
+    if (activeExerciseDetailKey) renderExerciseDetail();
   }
 
   /* ---------- plan semanal, calendario, comparación y medidas ---------- */
@@ -1782,6 +1898,7 @@
         if (mode === 'auto') return;
         var clean = { mode: mode, name: String(e.name || '') };
         if (typeof e.weights === 'string' && e.weights.length <= 120) clean.weights = e.weights;
+        if (typeof e.templateId === 'string' && e.templateId.length <= 80) clean.templateId = e.templateId;
         if (typeof e.cardio === 'boolean') clean.cardio = e.cardio;
         else if (typeof e.cardio === 'string' && e.cardio.length <= 80) clean.cardio = e.cardio;
         if (scope === 'weekdays') {
@@ -1807,7 +1924,7 @@
   };
   var CUSTOM_ROUTINE_KEYS = [
     'pulsefit_custom_routines', 'pulsefit_saved_routines', 'pulsefit_routine_templates',
-    'pulsefit_templates', 'pulsefit_my_routines', 'pulsefit_customRoutines', 'pulsefit_routines'
+    LS_TEMPLATES, 'pulsefit_templates', 'pulsefit_my_routines', 'pulsefit_customRoutines', 'pulsefit_routines'
   ];
   var ROUTINE_NAME_KEYS = ['name', 'title', 'label', 'routineName', 'templateName', 'rutina', 'plantilla'];
 
@@ -1867,6 +1984,21 @@
 
   function explicitWeightsPart(raw, wd) {
     if (!raw) return null;
+    var match = /^template:(.+)$/.exec(raw.weights || '');
+    var tplId = (typeof raw.templateId === 'string' && findTemplate(raw.templateId)) ? raw.templateId :
+      (match ? match[1] : '');
+    if (tplId && findTemplate(tplId)) {
+      var tpl = findTemplate(tplId);
+      var tplDay = tpl.sessions.filter(function (s) { return s.dayKey === wd; })[0] || tpl.sessions[0];
+      return {
+        name: tpl.name,
+        optionValue: 'template:' + tplId,
+        templateId: tplId,
+        split: SPLIT_DAYS[tpl.split] ? tpl.split : routineConfig.split,
+        dayKey: (tplDay && tplDay.dayKey != null) ? tplDay.dayKey : wd,
+        assigned: true
+      };
+    }
     var opt = raw.weights ? findRoutineOption(raw.weights) : null;
     if (!opt && raw.name) opt = findRoutineOption(raw.name);
     if (opt) {
@@ -2107,6 +2239,11 @@
       add('routine:custom:' + (options.length + 1), base, '', [base], false, false);
     });
 
+    // Etapa 2: las plantillas guardadas son rutinas seleccionables en el plan.
+    templates.forEach(function (tpl) {
+      add('template:' + tpl.id, tpl.name, '', [tpl.name], false, false);
+    });
+
     return options;
   }
 
@@ -2208,7 +2345,9 @@
     } else if (value === 'combo') {
       target[key] = { mode: 'combo', name: '', cardio: true };
     } else {
-      target[key] = { mode: 'routine', name: optionName(value), weights: value };
+      var entry = { mode: 'routine', name: optionName(value), weights: value };
+      if (value.indexOf('template:') === 0) entry.templateId = value.slice(9);
+      target[key] = entry;
     }
     window.PulseFit.weeklyPlan = weeklyPlan;
     if (Storage.savePlan) Storage.savePlan(weeklyPlan); else save(LS_PLAN, weeklyPlan);
@@ -2240,8 +2379,10 @@
         (p.mode === 'rest' ? ' rest' : '') + (p.mode === 'combo' ? ' combo' : '') +
         (s === ts ? ' today' : '') + (s === selectedCalDate ? ' selected' : '');
       var mark = trainedOn(s) ? '✓' : (p.mode === 'rest' ? '–' : (p.mode === 'combo' ? '+' : '·'));
+      var recorded = compactCardioSummary(days[s]);
+      var calLabel = p.name + (recorded ? ' · ' + recorded : '');
       html += '<button type="button" class="' + cls + '" data-cal-date="' + attr(s) + '"' +
-        ' title="' + attr(p.name) + '" aria-label="' + attr(fmtDate(s) + ' · ' + p.name) + '"><span class="cal-num">' + d.getDate() + '</span>' +
+        ' title="' + attr(calLabel) + '" aria-label="' + attr(fmtDate(s) + ' · ' + calLabel) + '"><span class="cal-num">' + d.getDate() + '</span>' +
         '<span class="cal-mark" aria-hidden="true">' + mark + '</span></button>';
     }
     grid.innerHTML = html;
@@ -2264,6 +2405,8 @@
         var equipDetail = cardioPlanDetail(3);
         if (equipDetail) summary += ' (' + equipDetail + ')';
       }
+      var recorded = compactCardioSummary(days[selectedCalDate]);
+      if (recorded) summary += ' · ' + recorded;
       if (entry.source === 'auto') summary += ' · ' + t('planAuto');
       else if (entry.source === 'date') summary += ' · ' + t('planSpecificDay');
       if (trainedOn(selectedCalDate)) summary += ' · ' + t('planLegendTrained');
@@ -2631,6 +2774,12 @@
   }
 
   /* ---------- cardio ---------- */
+  function cardioChipHtml(item) {
+    var on = cardioConfig.equipment.indexOf(item.id) >= 0;
+    return '<label class="equip-chip' + (on ? ' active' : '') + '" data-cardio-equip="' + item.id + '">' +
+      '<input type="checkbox"' + (on ? ' checked' : '') + '><span>' + esc(t(item.i18nKey)) + '</span></label>';
+  }
+
   function renderCardioConfigPanel() {
     var goalSel = $('cardioCfgGoal');
     if (goalSel && goalSel.value !== cardioConfig.goal) goalSel.value = cardioConfig.goal;
@@ -2642,11 +2791,25 @@
 
     var chipsBox = $('cardioEquipChips');
     if (chipsBox) {
-      chipsBox.innerHTML = CARDIO_EQUIPMENT_INFO.map(function (item) {
-        var on = cardioConfig.equipment.indexOf(item.id) >= 0;
-        return '<label class="equip-chip' + (on ? ' active' : '') + '" data-cardio-equip="' + item.id + '">' +
-          '<input type="checkbox"' + (on ? ' checked' : '') + '><span>' + esc(t(item.i18nKey)) + '</span></label>';
-      }).join('');
+      // El HTML ya trae ambos subgrupos; se reconstruyen si faltaran.
+      if (!chipsBox.querySelector('[data-cardio-chip-group="machines"]')) {
+        chipsBox.innerHTML =
+          '<section class="cardio-chip-subgroup">' +
+            '<h4 data-i18n="cardioEquipGroupMachines">' + esc(t('cardioEquipGroupMachines')) + '</h4>' +
+            '<div class="chip-group" data-cardio-chip-group="machines"></div>' +
+          '</section>' +
+          '<section class="cardio-chip-subgroup">' +
+            '<h4 data-i18n="cardioEquipGroupActivities">' + esc(t('cardioEquipGroupActivities')) + '</h4>' +
+            '<div class="chip-group" data-cardio-chip-group="activities"></div>' +
+          '</section>';
+      }
+      ['machines', 'activities'].forEach(function (group) {
+        var box = chipsBox.querySelector('[data-cardio-chip-group="' + group + '"]');
+        if (!box) return;
+        box.innerHTML = CARDIO_EQUIPMENT_INFO.filter(function (item) {
+          return item.group === group;
+        }).map(cardioChipHtml).join('');
+      });
     }
   }
 
@@ -2742,7 +2905,10 @@
     if (!sel) return;
     var currentVal = sel.value;
 
-    var activeList = cardioConfig.equipment.length ? cardioConfig.equipment : CARDIO_PRESETS.all;
+    var activeList = (cardioConfig.equipment.length ? cardioConfig.equipment : CARDIO_PRESETS.all).slice();
+    // Las actividades alternativas siempre están disponibles, aunque el usuario
+    // tenga una configuración anterior solo con máquinas.
+    ALT_ACTIVITY_IDS.forEach(function (id) { if (activeList.indexOf(id) < 0) activeList.push(id); });
 
     var optionsHtml = activeList.map(function (id) {
       var name = getCardioEquipmentName(id, curLang);
@@ -2756,6 +2922,8 @@
 
     optionsHtml += '<option value="otro"' + (currentVal === 'otro' ? ' selected' : '') + '>' + esc(t('optOtherCardio')) + '</option>';
     sel.innerHTML = optionsHtml;
+    syncCardioCustomField();
+    updateKcalEstimate();
   }
 
   function renderDays() {
@@ -2829,12 +2997,17 @@
     if (!keepDate) setWorkoutDate(todayIso(), { load: false });
     var date = currentDate();
     syncDateMirrors(date);
-    ['km', 'kcal', 'steps', 'minutes'].concat(TEXT_IDS).forEach(function (id) { $(id).value = ''; });
+    ['km', 'kcal', 'steps', 'minutes', 'cardioLaps', 'cardioCustomActivity'].concat(TEXT_IDS).forEach(function (id) {
+      if ($(id)) $(id).value = '';
+    });
+    if ($('kcal')) $('kcal').dataset.auto = '';
     $('ex').checked = true;
     if ($('cardioIntensity')) $('cardioIntensity').value = 'moderada';
     if ($('cardioActivity') && $('cardioActivity').options.length) {
       $('cardioActivity').selectedIndex = 0;
     }
+    syncCardioCustomField();
+    updateKcalEstimate();
     applyCardioDetailState(null);
     if ($('gtype') && $('gtype').options.length) $('gtype').selectedIndex = 0;
     if ($('liftMuscleSelect')) $('liftMuscleSelect').value = 'all';
@@ -2857,6 +3030,10 @@
     }
     syncDateMirrors(k);
     ['km', 'kcal', 'steps', 'minutes'].forEach(function (id) { $(id).value = r[id] == null ? '' : r[id]; });
+    if ($('cardioLaps')) $('cardioLaps').value = r.laps || r.distance || '';
+    if ($('cardioCustomActivity')) $('cardioCustomActivity').value = r.customName || '';
+    if ($('cardioCustomName')) $('cardioCustomName').value = r.customName || '';
+    if ($('kcal')) $('kcal').dataset.auto = r.kcalAuto === false ? 'manual' : '';
     TEXT_IDS.forEach(function (id) {
       // `entreno` guarda el detalle compuesto; las notas van en `notes`.
       // Los registros antiguos sin `notes` mantienen su texto libre como nota.
@@ -2888,6 +3065,8 @@
       }
     }
     applyCardioDetailState(r.detailFields || null);
+    syncCardioCustomField();
+    updateKcalEstimate();
     var msgKey = isPastDate(k) ? 'editingPastDay' : 'editingDay';
     say('msg', t(msgKey).replace('{date}', fmtDate(k)));
     if (opts.scroll !== false) $('f').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2899,6 +3078,8 @@
     syncDateMirrors(date);
     var actId = $('cardioActivity') ? $('cardioActivity').value : '';
     var detailValues = collectDetailValues();
+    if ($('cardioCustomName') && $('cardioCustomName').value) detailValues.activityName = detailValues.activityName || $('cardioCustomName').value.trim();
+    if ($('cardioCustomActivity') && $('cardioCustomActivity').value) detailValues.activityName = detailValues.activityName || $('cardioCustomActivity').value.trim();
     var detailText = actId ? composeCardioDetail(actId, detailValues, curLang) : '';
     var notes = $('entreno') ? $('entreno').value.trim() : '';
     var r = {
@@ -2910,6 +3091,11 @@
       kcal: num($('kcal').value),
       steps: num($('steps').value),
       minutes: num($('minutes').value),
+      // Etapa 2: distancia/vueltas/series como texto libre y nombre de la
+      // actividad personalizada, visibles en historial y copias de seguridad.
+      distance: detailValues.activityDistance || '',
+      customName: detailValues.activityName || '',
+      kcalAuto: !!(detailValues && $('kcal') && $('kcal').dataset.auto !== 'manual' && num($('kcal').value) > 0),
       // El detalle compuesto se guarda en `entreno` para que historial y
       // estadísticas lo muestren sin cambios; `notes` conserva el texto extra.
       detailFields: { activity: actId, values: detailValues },
@@ -3013,6 +3199,8 @@
     $('btnQuickFillCardio').addEventListener('click', function () {
       if (cardioConfig.equipment.length) {
         window.prefillCardio(cardioConfig.equipment[0]);
+        syncCardioCustomField();
+        updateKcalEstimate();
       } else {
         say('msg', t('noCardioEquipAvailable'), true);
       }
@@ -3021,8 +3209,19 @@
 
   if ($('cardioActivity')) {
     $('cardioActivity').addEventListener('change', function () {
+      syncCardioCustomField();
       renderCardioDetailBuilder();
+      updateKcalEstimate();
     });
+  }
+
+  ['minutes', 'cardioIntensity'].forEach(function (id) {
+    if ($(id)) $(id).addEventListener('input', updateKcalEstimate);
+  });
+  if ($('kcal')) {
+    $('kcal').addEventListener('input', function () { this.dataset.auto = 'manual'; updateKcalEstimate();
+  if ($('cardioLaps')) { $('cardioLaps').addEventListener('input', updateKcalEstimate); $('cardioLaps').addEventListener('change', updateKcalEstimate); }
+  if ($('cardioCustomName')) $('cardioCustomName').addEventListener('input', function(){ if($('cardioCustomActivity')) $('cardioCustomActivity').value = $('cardioCustomName').value; syncCardioCustomField(); updateKcalEstimate(); }); });
   }
 
   if ($('cardioDetailBuilder')) {
@@ -3163,8 +3362,13 @@
     var exSplit = (weightsPart && weightsPart.split) || split;
     var exDay = (weightsPart && weightsPart.dayKey != null) ? weightsPart.dayKey : wd;
     if (!SPLIT_DAYS[exSplit]) { exSplit = split; exDay = wd; }
-    var sess = getSplitSessionInfo(exSplit, exDay) || {};
-    var dayExs = getDayExercises(exSplit, exDay, routineConfig.equipment, goal);
+    var templateDay = (weightsPart && weightsPart.templateId) ? templateExercisesForDay(weightsPart.templateId, wd) : null;
+    if (!templateDay && !weightsPart && routineConfig.activeTemplateId) {
+      templateDay = templateExercisesForDay(routineConfig.activeTemplateId, wd);
+    }
+    var sess = templateDay ? { name: templateDay.name, sub: templateDay.sub } :
+      (getSplitSessionInfo(exSplit, exDay) || {});
+    var dayExs = templateDay ? templateDay.exercises : getDayExercises(exSplit, exDay, routineConfig.equipment, goal);
     var assigned = !!(weightsPart && weightsPart.assigned);
     var displayName = (weightsPart && weightsPart.name) || sess.name || t('planRoutine');
     var subText = assigned ? t('planAssignedNote') : (sess.sub || '');
@@ -3179,7 +3383,7 @@
     } else {
       var rowsHtml = dayExs.map(function (ex) {
         var exObj = EX_NAME_MAP[ex.key];
-        var exName = getExerciseName(ex.key, curLang);
+        var exName = exObj ? getExerciseName(ex.key, curLang) : (ex.name || ex.key);
         var muscleStr = exObj ? getMuscleName(exObj.muscle) : '';
         var equipStr = exObj && exObj.equipment && exObj.equipment.length ? exObj.equipment.map(getEquipmentName).join(' + ') : '';
         var metaStr = [muscleStr, equipStr].filter(Boolean).join(' · ');
@@ -3222,6 +3426,25 @@
     var dayNames = t('dayNames') || [];
     var repUnits = t('repUnits') || {};
 
+    // Una plantilla cargada reemplaza la división activa en la vista de rutina.
+    var activeTpl = routineConfig.activeTemplateId ? findTemplate(routineConfig.activeTemplateId) : null;
+    if (activeTpl && activeTpl.sessions.length) {
+      $('rtHead').textContent = t('rtToday').replace('{name}', activeTpl.name);
+      $('rtGrid').innerHTML = activeTpl.sessions.map(function (s, idx) {
+        var fallbackDay = t('templateSession').replace('{n}', String(idx + 1));
+        var title = (s.dayKey != null && dayNames[s.dayKey]) ? dayNames[s.dayKey] : fallbackDay;
+        var items = (s.exercises || []).map(function (ex) {
+          var name = EX_NAME_MAP[ex.key] ? getExerciseName(ex.key, curLang) : (ex.name || ex.key);
+          var suffix = EX_NAME_MAP[ex.key] && EX_NAME_MAP[ex.key].perSide && repUnits.perSide ? ' ' + repUnits.perSide : '';
+          return '<li>' + esc(name) + ' <span>' + esc((ex.setsReps || '') + suffix) + '</span></li>';
+        }).join('');
+        if (!items) items = '<li style="color:var(--muted);list-style:none">' + esc(t('noExercisesAvailable')) + '</li>';
+        return '<div class="rt' + (wd === s.dayKey ? ' today' : '') + '"><h3>' + esc(title + ' · ' + (s.name || activeTpl.name)) +
+          '</h3><p class="rt-sub">' + esc(activeTpl.name) + '</p><ul>' + items + '</ul></div>';
+      }).join('');
+      return;
+    }
+
     $('rtGrid').innerHTML = splitDays.map(function (k) {
       var sess = getSplitSessionInfo(split, k);
       var dayTitle = (dayNames[k] || '') + ' · ' + sess.name;
@@ -3240,6 +3463,175 @@
     }).join('');
   }
 
+  /* ---------- ficha/modal de ejercicio (Etapa 2) ---------- */
+  var activeExerciseDetailKey = null;
+
+  function exerciseDisplayName(rawKey) {
+    var key = getCanonicalExerciseKey(rawKey);
+    return EX_NAME_MAP[key] ? getExerciseName(key, curLang) : String(rawKey || key);
+  }
+
+  // Enlace reutilizable en pesas, calendario del día, historial y progreso.
+  function exerciseLink(rawKey, label) {
+    var key = getCanonicalExerciseKey(rawKey || label);
+    var text = label || exerciseDisplayName(key);
+    return '<button type="button" class="exercise-link" data-ex-detail="' + attr(key) + '">' + esc(text) + '</button>';
+  }
+
+  function getExerciseLiftHistory(rawKey) {
+    var key = getCanonicalExerciseKey(rawKey);
+    if (!key) return [];
+    var out = [];
+    Object.keys(lifts || {}).forEach(function (id) {
+      var v = lifts[id];
+      if (!v) return;
+      var k = getCanonicalExerciseKey(v.exerciseKey || v.ejercicio);
+      if (k !== key) return;
+      out.push({
+        id: id, v: v, date: liftDate(v),
+        series: num(v.series), reps: num(v.reps), kg: num(v.kg)
+      });
+    });
+    out.sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return (num(a.v.ts) - num(b.v.ts)) || (a.id < b.id ? -1 : (a.id > b.id ? 1 : 0));
+    });
+    return out;
+  }
+
+  // Gráfico lineal limpio: eje de cargas, línea continua y un punto por fecha.
+  function exerciseSvg(points) {
+    if (points.length < 2) return '<p class="chart-empty">' + esc(t('measureChartEmpty')) + '</p>';
+    var W = 520, H = 190, padX = 46, padY = 28;
+    var values = points.map(function (p) { return p.kg; });
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    var span = max - min;
+    if (span === 0) { min = Math.max(0, min - 5); max += 5; span = max - min; }
+    var lo = Math.max(0, min - span * 0.12), hi = max + span * 0.12;
+    function X(i) { return padX + i * (W - 2 * padX) / (points.length - 1); }
+    function Y(v) { return padY + (hi - v) * (H - 2 * padY) / (hi - lo); }
+    var grid = [0, 1, 2].map(function (i) {
+      var val = lo + (hi - lo) * i / 2, y = Y(val);
+      return '<line x1="' + padX + '" y1="' + y.toFixed(1) + '" x2="' + (W - padX) + '" y2="' + y.toFixed(1) +
+        '" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/>' +
+        '<text x="' + (padX - 6) + '" y="' + (y + 3).toFixed(1) + '" fill="var(--muted)" font-size="10" text-anchor="end">' +
+        esc(fmt(val, 1)) + '</text>';
+    }).join('');
+    var coords = points.map(function (p, i) { return { x: X(i), y: Y(p.kg) }; });
+    var line = coords.map(function (c) { return c.x.toFixed(1) + ',' + c.y.toFixed(1); }).join(' ');
+    var dots = coords.map(function (c, i) {
+      return '<circle cx="' + c.x.toFixed(1) + '" cy="' + c.y.toFixed(1) + '" r="3.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5">' +
+        '<title>' + esc(fmtDate(points[i].date) + ': ' + fmt(points[i].kg, 1) + ' kg') + '</title></circle>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + attr(t('measureEvolution') + ' · ' + exerciseDisplayName(activeExerciseDetailKey)) + '">' +
+      grid + '<polyline points="' + line + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      dots +
+      '<text x="' + padX + '" y="' + (H - 4) + '" fill="var(--muted)" font-size="10" text-anchor="start">' + esc(fmtDate(points[0].date)) + '</text>' +
+      '<text x="' + (W - padX) + '" y="' + (H - 4) + '" fill="var(--muted)" font-size="10" text-anchor="end">' + esc(fmtDate(points[points.length - 1].date)) + '</text>' +
+      '</svg>';
+  }
+
+  function renderExerciseDetail() {
+    var modal = $('exerciseModal');
+    if (!modal || !activeExerciseDetailKey) return;
+    var list = getExerciseLiftHistory(activeExerciseDetailKey);
+    var title = $('exerciseModalTitle');
+    if (title) title.textContent = exerciseDisplayName(activeExerciseDetailKey);
+
+    var pr = null, best = null, last = null, byDate = {}, dates = [];
+    list.forEach(function (it) {
+      if (!pr || it.kg > pr.kg || (it.kg === pr.kg && it.date > pr.date)) pr = it;
+      if (!byDate[it.date]) { byDate[it.date] = { date: it.date, kg: 0, volume: 0, sets: 0 }; dates.push(it.date); }
+      var day = byDate[it.date];
+      var volume = it.series * it.reps * it.kg;
+      if (it.kg > day.kg) day.kg = it.kg;
+      day.volume += volume;
+      day.sets += it.series;
+      if (!best || day.volume > best.volume) best = { date: day.date, volume: day.volume };
+      last = it;
+    });
+
+    var stats = [
+      { label: t('exDetailPR'), value: pr ? fmt(pr.kg, 1) + ' kg' : '—' },
+      { label: t('exDetailBestVolume'), value: best ? fmt(best.volume, 0) + ' kg' : '—' },
+      { label: t('exDetailSessions'), value: String(dates.length) },
+      { label: t('exDetailLastWeight'), value: last ? fmt(last.kg, 1) + ' kg' : '—' }
+    ];
+    var statsHtml = stats.map(function (s) {
+      return '<div class="exercise-stat"><b>' + esc(s.value) + '</b><span>' + esc(s.label) + '</span></div>';
+    }).join('');
+    if ($('exerciseStats')) $('exerciseStats').innerHTML = statsHtml;
+    if ($('exerciseModalStats')) { $('exerciseModalStats').innerHTML = statsHtml; $('exerciseModalStats').hidden = false; }
+    var sub = $('exerciseModalSub');
+    if (sub) sub.textContent = dates.length ? (dates.length + ' ' + t('exerciseSessions')) : t('exerciseNoHistory');
+
+    var chartHtml = '';
+    var chartHtml = '';
+    var chartEl = $('exerciseChart');
+    if (chartEl) {
+      chartHtml = dates.length ? buildExerciseProgressionSvg(dates.map(function (d) { return { date: d, kg: byDate[d].kg }; })) :
+        '<p class="msg" style="margin:8px 0">' + esc(t('emptyChart')) + '</p>';
+      chartEl.innerHTML = chartHtml;
+    }
+    if ($('exerciseModalChart')) { $('exerciseModalChart').innerHTML = chartHtml || (chartEl ? chartEl.innerHTML : ''); $('exerciseModalChart').hidden = false; }
+
+    var histHtml = '';
+    if (!dates.length) {
+      histHtml = '<p class="msg">' + esc(t('exerciseNoHistory')) + '</p>';
+    } else {
+      histHtml = dates.slice().reverse().map(function (date) {
+        var day = byDate[date];
+        var metrics = [
+          histPill(fmt(day.kg, 1) + ' kg', 'accent'),
+          histPill(fmt(day.volume, 0) + ' kg'),
+          histPill(fmt(day.sets, 0) + ' ' + t('seriesShort'))
+        ];
+        return histCard(
+          '<span class="hist-date">' + esc(fmtDate(date)) + '</span><span class="hist-metrics">' + histMetricList(metrics) + '</span>',
+          '', ''
+        );
+      }).join('');
+    }
+    if ($('exerciseHistory')) $('exerciseHistory').innerHTML = histHtml;
+    if ($('exerciseModalHistory')) { $('exerciseModalHistory').innerHTML = histHtml; $('exerciseModalHistory').hidden = false; }
+  }
+
+  function openExerciseDetail(rawKey) {
+    var key = getCanonicalExerciseKey(rawKey);
+    if (!key) return;
+    activeExerciseDetailKey = key;
+    renderExerciseDetail();
+    var modal = $('exerciseModal');
+    if (modal) modal.hidden = false;
+    if ($('btnCloseExercise')) $('btnCloseExercise').focus();
+  }
+
+  function closeExerciseDetail() {
+    activeExerciseDetailKey = null;
+    var modal = $('exerciseModal');
+    if (modal) modal.hidden = true;
+  }
+
+  document.querySelectorAll('[data-close-exercise]').forEach(function (btn) {
+    btn.addEventListener('click', closeExerciseDetail);
+  });
+  document.addEventListener('click', function (e) {
+    var link = e.target && e.target.closest ? e.target.closest('[data-ex-detail]') : null;
+    if (!link) return;
+    e.preventDefault();
+    openExerciseDetail(link.getAttribute('data-ex-detail'));
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && activeExerciseDetailKey) closeExerciseDetail();
+  });
+  if ($('btnExerciseDetail')) {
+    $('btnExerciseDetail').addEventListener('click', function () {
+      var key = (window.PulseFitCharts && window.PulseFitCharts.getSelectedExercise) ?
+        window.PulseFitCharts.getSelectedExercise() : ($('chartExSelect') ? $('chartExSelect').value : '');
+      openExerciseDetail(key || $('chartExSelect').value);
+    });
+  }
+
   function renderLifts() {
     var box = $('gHist'), marks = $('gMarks');
     var list = Object.keys(lifts).map(function (id) { return { id: id, v: lifts[id] }; }).filter(function (it) { return it.v; });
@@ -3255,8 +3647,9 @@
       var main = '<span class="hist-date">' + esc(fmtDate(date)) + '</span>' +
         '<span class="tag yes">' + esc(t('statusWorked')) + '</span>' +
         '<span class="hist-metrics">' + histMetricList(metrics) + '</span>';
-      var detail = histDetailText(String(v.ejercicio || '') + ' · ' + getTypeLabel(v.tipo), '');
-      return histCard(main, histDetail(detail), actionButtons('lift', it.id, v.ejercicio));
+      var detail = '<span>' + exerciseLink(v.exerciseKey || v.ejercicio, exerciseDisplayName(v.ejercicio)) +
+        ' · ' + esc(getTypeLabel(v.tipo)) + '</span>';
+      return histCard(main, detail, actionButtons('lift', it.id, v.ejercicio));
     }).join('');
 
     var best = {};
@@ -3266,7 +3659,7 @@
     });
     marks.innerHTML = Object.keys(best).sort().map(function (k) {
       var b = best[k];
-      var main = '<span class="hist-date">' + esc(b.name) + '</span>' +
+      var main = '<span class="hist-date">' + exerciseLink(k, b.name) + '</span>' +
         '<span class="hist-metrics">' + histMetricList([
           histPill(fmt(b.kg, 1) + ' kg', 'accent'),
           histPill(fmt(b.reps, 0) + ' ' + t('thReps'))
@@ -3332,7 +3725,10 @@
       rows.push({
         date: date,
         ts: num(v.ts),
-        html: histCard(main, histDetail(histDetailText(name + ' · ' + getTypeLabel(v.tipo), '')), actionButtons('lift', id, name))
+        html: histCard(main,
+          '<span>' + exerciseLink(v.exerciseKey || name, exerciseDisplayName(name)) +
+            ' · ' + esc(getTypeLabel(v.tipo)) + '</span>',
+          actionButtons('lift', id, name))
       });
     });
 
@@ -3634,6 +4030,541 @@
     });
   }
 
+  /* ---------- plantillas de rutinas (Etapa 2) ---------- */
+  function findTemplate(id) {
+    if (!id) return null;
+    for (var i = 0; i < templates.length; i++) {
+      if (templates[i].id === id) return templates[i];
+    }
+    return null;
+  }
+
+  function persistTemplates() {
+    if (Storage.saveTemplates) Storage.saveTemplates(templates);
+    else save(LS_TEMPLATES, templates);
+    window.PulseFit.templates = templates;
+  }
+
+  //devuelve la sesión de una plantilla correspondiente a un día (lunes=0).
+  function templateExercisesForDay(id, wd) {
+    var tpl = findTemplate(id);
+    if (!tpl || !tpl.sessions.length) return null;
+    var sess = tpl.sessions.filter(function (s) { return s.dayKey === wd; })[0] || tpl.sessions[0];
+    if (!sess) return null;
+    return {
+      name: sess.name || tpl.name,
+      sub: tpl.name,
+      exercises: (sess.exercises || []).map(function (ex) {
+        return {
+          key: ex.key,
+          name: ex.name || (ex.key ? ex.key : ''),
+          setsReps: ex.setsReps || ((ex.sets && ex.reps) ? (ex.sets + '×' + ex.reps) : ''),
+          perSide: EX_NAME_MAP[ex.key] ? !!EX_NAME_MAP[ex.key].perSide : false
+        };
+      })
+    };
+  }
+
+  function findRoutineObjectByName(name, value, depth) {
+    if (!value || depth > 4) return null;
+    if (Array.isArray(value)) {
+      for (var i = 0; i < value.length; i++) {
+        var foundItem = findRoutineObjectByName(name, value[i], depth + 1);
+        if (foundItem) return foundItem;
+      }
+      return null;
+    }
+    if (typeof value !== 'object') return null;
+    var isRoutine = !!(value.days || value.sessions || value.exercises || value.weekdays || value.rows || value.items);
+    if (routineNameOf(value) === name && isRoutine) return value;
+    var keys = ['days', 'sessions', 'weekdays', 'rows', 'items', 'exercises', 'routines',
+      'customRoutines', 'savedRoutines', 'templates', 'routineTemplates'];
+    for (var k = 0; k < keys.length; k++) {
+      if (!value[keys[k]] || typeof value[keys[k]] !== 'object') continue;
+      var found = findRoutineObjectByName(name, value[keys[k]], depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function getCustomRoutineByName(name) {
+    var pf = window.PulseFit || {};
+    var sources = [pf.customRoutines, pf.savedRoutines, pf.routineTemplates, pf.templates, pf.routines];
+    for (var i = 0; i < sources.length; i++) {
+      var found = findRoutineObjectByName(name, sources[i], 0);
+      if (found) return found;
+    }
+    var foundStored = null;
+    CUSTOM_ROUTINE_KEYS.forEach(function (key) {
+      var found = findRoutineObjectByName(name, readStoredJson(key), 0);
+      if (found && !foundStored) foundStored = found;
+    });
+    if (foundStored) return foundStored;
+    try {
+      for (var j = 0; j < localStorage.length; j++) {
+        var key = localStorage.key(j);
+        if (!key || CUSTOM_ROUTINE_KEYS.indexOf(key) >= 0) continue;
+        if (!/(custom|saved|my)[_-]?(routines?|templates?)|(routines?|templates?)[_-]?(custom|saved|my)/i.test(key)) continue;
+        var foundCustom = findRoutineObjectByName(name, readStoredJson(key), 0);
+        if (foundCustom) return foundCustom;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function templateExerciseFrom(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var key = String(raw.key || raw.exerciseKey || '').slice(0, 80);
+    var name = String(raw.name || raw.ejercicio || raw.exerciseName || '').trim().slice(0, 120);
+    if (!name && key) name = EX_NAME_MAP[key] ? getExerciseName(key, curLang) : key;
+    if (!name) return null;
+    var sets = num(raw.sets != null ? raw.sets : raw.series);
+    var reps = num(raw.reps);
+    var setsReps = String(raw.setsReps || '').trim().slice(0, 40) ||
+      (sets && reps ? (fmt(sets, 0) + '×' + fmt(reps, 0)) : '');
+    return { key: key, name: name, sets: sets, reps: reps, setsReps: setsReps };
+  }
+
+  function normalizeTemplateSessions(sessions) {
+    var out = [];
+    (sessions || []).forEach(function (s) {
+      if (!s || typeof s !== 'object') return;
+      var exercises = (s.exercises || []).map(templateExerciseFrom).filter(Boolean);
+      if (!exercises.length) return;
+      var rawDay = s.dayKey;
+      var dayKey = (rawDay != null && /^\d+$/.test(String(rawDay))) ? +rawDay : null;
+      out.push({
+        dayKey: (dayKey != null && dayKey >= 0 && dayKey <= 6) ? dayKey : null,
+        name: String(s.name || '').trim().slice(0, 80),
+        exercises: exercises
+      });
+    });
+    return out;
+  }
+
+  function sessionsFromSplit(splitKey, onlyDayKey) {
+    if (!SPLIT_DAYS[splitKey]) splitKey = routineConfig.split;
+    var dayKeys = (SPLIT_DAYS[splitKey] || []).slice().sort(function (a, b) { return (+a) - (+b); });
+    if (onlyDayKey != null) dayKeys = dayKeys.filter(function (d) { return d === +onlyDayKey; });
+    return normalizeTemplateSessions(dayKeys.map(function (dayKey) {
+      var sess = getSplitSessionInfo(splitKey, dayKey) || {};
+      var exercises = getDayExercises(splitKey, dayKey, routineConfig.equipment, routineConfig.goal).map(function (it) {
+        var pieces = /^(\d+)\s*[x×]\s*(\d+)/.exec(it.setsReps || '');
+        return {
+          key: it.key,
+          name: getExerciseName(it.key, curLang),
+          sets: pieces ? +pieces[1] : 0,
+          reps: pieces ? +pieces[2] : 0,
+          setsReps: it.setsReps
+        };
+      });
+      return { dayKey: dayKey, name: sess.name || '', exercises: exercises };
+    }));
+  }
+
+  function sessionsFromRoutineObject(obj) {
+    if (!obj || typeof obj !== 'object') return [];
+    var raw = [];
+    if (Array.isArray(obj.sessions)) {
+      raw = obj.sessions;
+    } else if (obj.days && typeof obj.days === 'object') {
+      raw = Object.keys(obj.days).map(function (k) {
+        var s = obj.days[k], day = /^\d+$/.test(k) ? +k : null;
+        if (Array.isArray(s)) return { dayKey: day, name: '', exercises: s };
+        if (!s || typeof s !== 'object') return null;
+        var dayKey = (s.dayKey != null) ? s.dayKey : day;
+        return { dayKey: dayKey, name: s.name || '', exercises: s.exercises || [] };
+      }).filter(Boolean);
+    } else if (Array.isArray(obj.exercises)) {
+      raw = [{ dayKey: null, name: routineNameOf(obj) || '', exercises: obj.exercises }];
+    } else if (Array.isArray(obj.rows) || Array.isArray(obj.items)) {
+      raw = [{ dayKey: null, name: routineNameOf(obj) || '', exercises: obj.rows || obj.items }];
+    }
+    return normalizeTemplateSessions(raw);
+  }
+
+  function sessionsFromSource(value) {
+    value = String(value || 'current');
+    if (value === 'current') return sessionsFromSplit(routineConfig.split);
+    var match = /^routine:([^:]+):(\d+)$/.exec(value);
+    if (match) return sessionsFromSplit(match[1], +match[2]);
+    if (value.indexOf('split:') === 0) return sessionsFromSplit(value.slice(6));
+    if (value.indexOf('template:') === 0) {
+      var tpl = findTemplate(value.slice(9));
+      return tpl ? normalizeTemplateSessions(tpl.sessions) : [];
+    }
+    var byName = templates.filter(function (t) { return t.name.toLocaleLowerCase() === value.toLocaleLowerCase(); })[0];
+    if (byName) return normalizeTemplateSessions(byName.sessions);
+    var opt = findRoutineOption(value);
+    var custom = getCustomRoutineByName((opt && opt.name) || value);
+    return custom ? sessionsFromRoutineObject(custom) : [];
+  }
+
+  function getTemplateSourceCatalog() {
+    var out = [{ value: 'current', name: t('templateCurrent') }];
+    getRoutineOptionCatalog().forEach(function (opt) {
+      var exists = out.some(function (o) { return o.value === opt.value; });
+      if (!exists) out.push({ value: opt.value, name: opt.name });
+    });
+    return out;
+  }
+
+  function renderTemplateSources() {
+    var catalog = getTemplateSourceCatalog();
+    var sourceSel = $('templateSource');
+    if (sourceSel) {
+      var current = sourceSel.value || 'current';
+      sourceSel.innerHTML = catalog.map(function (opt) {
+        return '<option value="' + attr(opt.value) + '"' + (opt.value === current ? ' selected' : '') + '>' +
+          esc(opt.name) + '</option>';
+      }).join('');
+    }
+    var planSel = $('planTemplateSelect');
+    if (planSel) {
+      var selected = planSel.value;
+      var html = templates.map(function (tpl) {
+        return '<option value="' + attr(tpl.id) + '"' + (tpl.id === selected ? ' selected' : '') + '>' +
+          esc(tpl.name) + '</option>';
+      }).join('');
+      planSel.innerHTML = html || '<option value="">' + esc(t('templatesEmpty')) + '</option>';
+    }
+  }
+
+  function templateListHtml() {
+    if (!templates.length) return '<p class="empty">' + esc(t('templatesEmpty')) + '</p>';
+    return templates.map(function (tpl) {
+      var exCount = tpl.sessions.reduce(function (sum, s) { return sum + (s.exercises || []).length; }, 0);
+      var sessionCount = tpl.sessions.length;
+      var meta = sessionCount + ' ' + t(sessionCount === 1 ? 'sessionSingular' : 'sessionPlural') + ' · ' +
+        exCount + ' ' + t(exCount === 1 ? 'exerciseSingular' : 'exercisePlural') +
+        (tpl.source ? ' · ' + tpl.source : '');
+      return '<div class="template-item" data-template-id="' + attr(tpl.id) + '">' +
+        '<div class="template-item-main"><span class="template-name">' + esc(tpl.name) + '</span>' +
+        '<span class="template-meta">' + esc(meta) + '</span></div>' +
+        '<div class="actions">' +
+          '<button type="button" class="btn-subtle" data-tpl-action="apply">' + esc(t('templateApply')) + '</button>' +
+          '<button type="button" class="btn-subtle" data-tpl-action="apply-week">' + esc(t('templateApplyWeek')) + '</button>' +
+          '<button type="button" class="btn-subtle" data-tpl-action="duplicate">' + esc(t('templateDuplicate')) + '</button>' +
+          '<button type="button" class="btn-subtle" data-tpl-action="rename">' + esc(t('templateRename')) + '</button>' +
+          '<button type="button" class="btn-subtle danger" data-tpl-action="delete">' + esc(t('templateDelete')) + '</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function renderTemplateDaySelect() {
+    var sel = $('templateDaySelect');
+    if (!sel) return;
+    var names = t('dayNames') || ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+    var cur = sel.value !== '' && sel.value != null ? sel.value : String(dow(today()));
+    sel.innerHTML = names.map(function(n,i){ return '<option value="'+i+'">'+esc(n)+'</option>'; }).join('');
+    sel.value = cur;
+  }
+  function renderTemplates() {
+    renderTemplateSources();
+    renderTemplateDaySelect();
+    var html = templateListHtml();
+    ['templateList','templateListPlan','planTemplateList'].forEach(function(id){ var el=$(id); if(el) el.innerHTML = html; });
+  }
+
+  function templateMessage(text, err) {
+    say('templateMsg', text, err);
+    say('planTemplateMsg', text, err);
+  }
+
+  function upsertTemplate(name, sessions, sourceName, duplicate) {
+    var cleanName = String(name || '').trim().slice(0, 80);
+    if (!cleanName) { templateMessage(t('templateNameRequired'), true); return null; }
+    if (!sessions.length) { templateMessage(t('templateNoExercises'), true); return null; }
+    var idx = -1;
+    for (var i = 0; i < templates.length; i++) {
+      if (templates[i].name.toLocaleLowerCase() === cleanName.toLocaleLowerCase()) { idx = i; break; }
+    }
+    var tpl = {
+      id: idx >= 0 ? templates[idx].id : ('tpl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7)),
+      name: cleanName,
+      source: String(sourceName || '').slice(0, 80),
+      split: routineConfig.split,
+      goal: routineConfig.goal,
+      createdAt: idx >= 0 ? templates[idx].createdAt : new Date().toISOString(),
+      sessions: sessions
+    };
+    if (idx >= 0) templates[idx] = tpl; else templates.push(tpl);
+    persistTemplates();
+    templateMessage(t(duplicate ? 'templateDuplicated' : 'templateSaved').replace('{name}', cleanName));
+    render();
+    return tpl;
+  }
+
+  function saveTemplateFromSource(duplicate) {
+    var sel = $('templateSource');
+    var value = sel ? sel.value : 'current';
+    var opt = getTemplateSourceCatalog().filter(function (o) { return o.value === value; })[0];
+    var sourceName = (opt && opt.name) || t('templateCurrent');
+    var sessions = sessionsFromSource(value);
+    var typed = $('templateName') ? $('templateName').value.trim() : '';
+    var base = typed || sourceName + (duplicate ? (' ' + t('templateCopySuffix')) : '');
+    return upsertTemplate(base, sessions, sourceName, !!duplicate);
+  }
+
+  function duplicateTemplate(id) {
+    var tpl = findTemplate(id);
+    if (!tpl) return;
+    var base = t('templateCopy').replace('{name}', tpl.name);
+    var name = base, n = 2;
+    while (templates.some(function (t) { return t.name.toLocaleLowerCase() === name.toLocaleLowerCase(); })) {
+      name = base + ' ' + (n++);
+    }
+    upsertTemplate(name, normalizeTemplateSessions(tpl.sessions), tpl.name, true);
+  }
+
+  function renameTemplate(id) {
+    var tpl = findTemplate(id);
+    if (!tpl) return;
+    var typed = window.prompt(t('templateNamePrompt'), tpl.name);
+    if (typed == null) return;
+    var name = String(typed).trim().slice(0, 80);
+    if (!name) { templateMessage(t('templateNameRequired'), true); return; }
+    var idx = templates.indexOf(tpl);
+    templates[idx] = Object.assign({}, tpl, { name: name });
+    persistTemplates();
+    templateMessage(t('templateRenamed').replace('{name}', name));
+    render();
+  }
+
+  function deleteTemplateById(id) {
+    var tpl = findTemplate(id);
+    if (!tpl) return;
+    if (!window.confirm(t('templateDeleteConfirm').replace('{name}', tpl.name))) return;
+    templates = templates.filter(function (t) { return t.id !== id; });
+    persistTemplates();
+    [weeklyPlan.weekdays, weeklyPlan.dates].forEach(function (scope) {
+      Object.keys(scope).forEach(function (k) {
+        var e = scope[k];
+        if (e && (e.templateId === id || e.weights === 'template:' + id)) delete scope[k];
+      });
+    });
+    if (Storage.savePlan) Storage.savePlan(weeklyPlan); else save(LS_PLAN, weeklyPlan);
+    if (routineConfig.activeTemplateId === id) {
+      delete routineConfig.activeTemplateId;
+      delete routineConfig.name;
+      saveConfig();
+    }
+    templateMessage(t('templateDeleted').replace('{name}', tpl.name));
+    render();
+  }
+
+  function applyTemplateToCurrent(id) {
+    var tpl = findTemplate(id);
+    if (!tpl) return;
+    if (SPLIT_DAYS[tpl.split]) routineConfig.split = tpl.split;
+    if (GOALS[tpl.goal]) routineConfig.goal = tpl.goal;
+    routineConfig.name = tpl.name;
+    routineConfig.activeTemplateId = tpl.id;
+    saveConfig();
+    templateMessage(t('templateApplied').replace('{name}', tpl.name));
+    render();
+    showTab('pesas');
+  }
+
+  function applyTemplateToDay(id) {
+    var tpl = findTemplate(id);
+    if (!tpl) return;
+    var sel = $('templateDaySelect');
+    var dk = sel ? parseInt(sel.value, 10) : dow(today());
+    if (!isFinite(dk) || dk < 0 || dk > 6) dk = dow(today());
+    weeklyPlan.weekdays[String(dk)] = { mode: 'routine', name: tpl.name || t('templateUntitled'), templateId: tpl.id };
+    window.PulseFit.weeklyPlan = weeklyPlan;
+    if (Storage.savePlan) Storage.savePlan(weeklyPlan); else save(LS_PLAN, weeklyPlan);
+    render();
+  }
+
+  function applyTemplateToWeek(id) {
+    var tpl = findTemplate(id);
+    if (!tpl) return;
+    var used = {};
+    tpl.sessions.forEach(function (s) {
+      if (s.dayKey == null || s.dayKey < 0 || s.dayKey > 6) return;
+      used[s.dayKey] = true;
+      weeklyPlan.weekdays[s.dayKey] = {
+        mode: 'routine', name: tpl.name, weights: 'template:' + tpl.id, templateId: tpl.id
+      };
+    });
+    if (!Object.keys(used).length) {
+      [0, 1, 2, 3, 4].forEach(function (wd) {
+        weeklyPlan.weekdays[wd] = {
+          mode: 'routine', name: tpl.name, weights: 'template:' + tpl.id, templateId: tpl.id
+        };
+      });
+    }
+    if (Storage.savePlan) Storage.savePlan(weeklyPlan); else save(LS_PLAN, weeklyPlan);
+    templateMessage(t('templateAppliedWeek').replace('{name}', tpl.name));
+    render();
+  }
+
+  function handleTemplateAction(e) {
+    var btn = e.target && e.target.closest ? e.target.closest('[data-tpl-action]') : null;
+    if (!btn) return;
+    var item = btn.closest('[data-template-id]');
+    var id = item ? item.getAttribute('data-template-id') : '';
+    if (!id) return;
+    e.preventDefault();
+    var action = btn.getAttribute('data-tpl-action');
+    if (action === 'apply') applyTemplateToCurrent(id);
+    else if (action === 'apply-week') applyTemplateToWeek(id);
+    else if (action === 'apply-day') applyTemplateToDay(id);
+    else if (action === 'duplicate') duplicateTemplate(id);
+    else if (action === 'rename') renameTemplate(id);
+    else if (action === 'delete') deleteTemplateById(id);
+  }
+
+  if ($('templateList')) $('templateList').addEventListener('click', handleTemplateAction);
+  if ($('planTemplateList')) $('planTemplateList').addEventListener('click', handleTemplateAction);
+  if ($('templateListPlan')) $('templateListPlan').addEventListener('click', handleTemplateAction);
+  if ($('btnSaveTemplate')) $('btnSaveTemplate').addEventListener('click', function () { saveTemplateFromSource(false); });
+  if ($('btnDuplicateTemplate')) $('btnDuplicateTemplate').addEventListener('click', function () { saveTemplateFromSource(true); });
+  if ($('btnApplyPlanTemplate')) {
+    $('btnApplyPlanTemplate').addEventListener('click', function () {
+      var sel = $('planTemplateSelect');
+      if (sel && sel.value) applyTemplateToWeek(sel.value);
+      else templateMessage(t('templatesEmpty'), true);
+    });
+  }
+  if ($('btnDeletePlanTemplate')) {
+    $('btnDeletePlanTemplate').addEventListener('click', function () {
+      var sel = $('planTemplateSelect');
+      if (sel && sel.value) deleteTemplateById(sel.value);
+      else templateMessage(t('templatesEmpty'), true);
+    });
+  }
+
+  /* ---------- modo demo: actividades alternativas, pesas y plantilla ---------- */
+  function demoDay(date, data) {
+    var rec = Storage.makeDayRecord ? Storage.makeDayRecord(date, data) : Object.assign({}, data, { date: date });
+    days[rec.date] = rec;
+  }
+
+  function demoLift(date, key, kg, series, reps, n) {
+    var data = {
+      date: date,
+      ts: Date.now() + n,
+      ejercicio: EX_NAME_MAP[key] ? getExerciseName(key, 'es') : key,
+      exerciseKey: key,
+      tipo: EX_NAME_MAP[key] ? EX_NAME_MAP[key].tipo : 'barra',
+      series: series, reps: reps, kg: kg
+    };
+    var rec = Storage.makeLiftRecord ? Storage.makeLiftRecord(date, data) : Object.assign({}, data, { date: date });
+    lifts['demo-' + key + '-' + n] = rec;
+  }
+
+  function loadDemoData() {
+    var tFn = window.PulseFit && window.PulseFit.t ? window.PulseFit.t : t;
+    if (!window.confirm(tFn('demoConfirm') || tFn('resetDataConfirm'))) return;
+    if (Storage.resetAllData) Storage.resetAllData();
+    else {
+      Object.keys(Storage.KEYS || {}).forEach(function (k) {
+        try { localStorage.removeItem(Storage.KEYS[k]); } catch (e) {}
+      });
+    }
+
+    var base = today();
+    days = {};
+    lifts = {};
+    var demoActivities = [
+      { offset: -6, activity: 'swimming', minutes: 45, kcal: 360, km: 1.4, distance: '1.4 km', intensity: 'moderada' },
+      { offset: -5, activity: 'outdoor_walk', minutes: 32, kcal: 410, km: 5.2, distance: '5.2 km', intensity: 'alta' },
+      { offset: -3, activity: 'outdoor_bike', minutes: 60, kcal: 420, km: 18, distance: '18 km', intensity: 'moderada' },
+      { offset: -2, activity: 'yoga', minutes: 30, kcal: 110, km: 0, distance: '6 series', intensity: 'suave' },
+      { offset: -1, activity: 'custom', custom: 'Senderismo', minutes: 90, kcal: 540, km: 6, distance: '6 km', intensity: 'moderada' },
+      { offset: 0, activity: 'team_sports', minutes: 60, kcal: 480, km: 0, distance: '2 partidos', intensity: 'alta' }
+    ];
+    demoActivities.forEach(function (a, i) {
+      var date = iso(addDays(base, a.offset));
+      var values = { activityDistance: a.distance, activityName: a.custom || '' };
+      var detailText = getActivityName(a.activity, values) + (a.distance ? ': ' + a.distance : '');
+      demoDay(date, {
+        exercised: true,
+        activity: a.activity,
+        intensity: a.intensity,
+        km: a.km,
+        kcal: a.kcal,
+        steps: a.activity === 'outdoor_walk' ? 6200 : 0,
+        minutes: a.minutes,
+        distance: a.distance,
+        customName: values.activityName,
+        kcalAuto: false,
+        detailFields: { activity: a.activity, values: values },
+        entreno: detailText,
+        notes: t('demoActivityNote')
+      });
+    });
+
+    [[-7, 60], [-4, 65], [-2, 70], [0, 75]].forEach(function (pair, i) {
+      demoLift(iso(addDays(base, pair[0])), 'bench_press', pair[1], 4, 8, i);
+    });
+    [[-7, 80], [-3, 85], [0, 90]].forEach(function (pair, i) {
+      demoLift(iso(addDays(base, pair[0])), 'barbell_squat', pair[1], 3, 6, 10 + i);
+    });
+
+    var demoTemplate = Storage.normalizeTemplate ? Storage.normalizeTemplate({
+      id: 'tpl-demo-' + Date.now().toString(36),
+      name: t('demoTemplateName'),
+      source: t('templateCurrent'),
+      split: routineConfig.split,
+      goal: routineConfig.goal,
+      sessions: [
+        {
+          dayKey: 0,
+          name: t('demoSessionA'),
+          exercises: [
+            { key: 'bench_press', name: getExerciseName('bench_press', 'es'), sets: 4, reps: 8, setsReps: '4×8' },
+            { key: 'lat_pulldown', name: getExerciseName('lat_pulldown', 'es'), sets: 3, reps: 10, setsReps: '3×10' }
+          ]
+        },
+        {
+          dayKey: 2,
+          name: t('demoSessionB'),
+          exercises: [
+            { key: 'barbell_squat', name: getExerciseName('barbell_squat', 'es'), sets: 3, reps: 6, setsReps: '3×6' },
+            { key: 'military_press', name: getExerciseName('military_press', 'es'), sets: 3, reps: 8, setsReps: '3×8' }
+          ]
+        }
+      ]
+    }) : null;
+    templates = demoTemplate ? [demoTemplate] : [];
+
+    var measureDates = [-14, -1].map(function (offset) { return iso(addDays(base, offset)); });
+    measures = {};
+    measureDates.forEach(function (date, i) {
+      var rec = Storage.makeDayRecord ? Storage.makeDayRecord(date, { date: date, weight: 72 - i, unit: 'kg', ts: Date.now() + i }) :
+        { date: date, weight: 72 - i, unit: 'kg', ts: Date.now() + i };
+      measures['demo-measure-' + i] = rec;
+    });
+
+    weeklyPlan = defaultPlan();
+    if (demoTemplate) {
+      weeklyPlan.weekdays['0'] = { mode: 'routine', name: demoTemplate.name, weights: 'template:' + demoTemplate.id, templateId: demoTemplate.id };
+      weeklyPlan.weekdays['2'] = { mode: 'routine', name: demoTemplate.name, weights: 'template:' + demoTemplate.id, templateId: demoTemplate.id };
+      routineConfig.name = demoTemplate.name;
+      routineConfig.activeTemplateId = demoTemplate.id;
+    }
+
+    window.PulseFit.setDays(days);
+    window.PulseFit.setLifts(lifts);
+    window.PulseFit.setMeasures(measures);
+    window.PulseFit.setMeasureUnit('kg');
+    window.PulseFit.setPlan(weeklyPlan);
+    window.PulseFit.setTemplates(templates);
+    if (Storage.saveDays) Storage.saveDays(days); else save(LS_DAYS, days);
+    if (Storage.saveLifts) Storage.saveLifts(lifts); else save(LS_LIFTS, lifts);
+    if (Storage.saveMeasures) Storage.saveMeasures(measures); else save(LS_MEASURES, measures);
+    if (Storage.saveConfig) Storage.saveConfig(routineConfig); else save(LS_CONFIG, routineConfig);
+    if (Storage.savePlan) Storage.savePlan(weeklyPlan); else save(LS_PLAN, weeklyPlan);
+    render();
+    say('backupMsg', t('demoLoaded'));
+  }
+
+  if ($('btnDemoMode')) $('btnDemoMode').addEventListener('click', loadDemoData);
+
   // Las vistas del plan dependen de las dos pestañas: al cambiar pesas o
   // cardio hay que actualizarlas todas para que no queden desincronizadas.
   function renderPlanViews() {
@@ -3641,6 +4572,7 @@
     renderCalendar();
     renderWeekPlanner();
     renderTodayRoutine();
+    if (typeof renderTemplates === 'function') renderTemplates();
   }
 
   function render() {
@@ -3654,6 +4586,7 @@
     renderCardioConfigPanel();
     renderSuggestedCardio();
     renderCardioActivitySelect();
+    renderTemplates();
     renderConfigPanel();
     renderTodayRoutine();
     renderRoutine();
@@ -4125,7 +5058,13 @@
   loadCardioConfig();
   weeklyPlan = normalizePlan(Storage.loadPlan ? Storage.loadPlan() : load(LS_PLAN));
   measures = (Storage.loadMeasures ? Storage.loadMeasures() : load(LS_MEASURES)) || {};
+  templates = (Storage.loadTemplates ? Storage.loadTemplates() : load(LS_TEMPLATES)) || [];
+  if (!Array.isArray(templates)) templates = [];
   measureUnit = loadMeasureUnit();
+  var storedTemplates = load(LS_TEMPLATES);
+  templates = Storage.loadTemplates ? Storage.loadTemplates() :
+    (Array.isArray(storedTemplates) ? storedTemplates : ((storedTemplates && storedTemplates.templates) || []));
+  window.PulseFit.templates = templates;
   /* Migracion asincrona a IndexedDB: se refleja solo si el estado cambio. */
   if (Storage.whenReady) Storage.whenReady().then(function () {
     var pf = window.PulseFit, changed = false;
@@ -4133,6 +5072,7 @@
     var l = Storage.loadLifts ? Storage.loadLifts() : load(LS_LIFTS);
     var plan = normalizePlan(Storage.loadPlan ? Storage.loadPlan() : load(LS_PLAN));
     var m = (Storage.loadMeasures ? Storage.loadMeasures() : load(LS_MEASURES)) || {};
+    var tpl = (Storage.loadTemplates ? Storage.loadTemplates() : load(LS_TEMPLATES)) || [];
     var rc = Object.assign({}, routineConfig), cc = Object.assign({}, cardioConfig);
     if (Storage.loadConfig) Storage.loadConfig(rc, GOALS, SPLIT_DAYS);
     else rc = load(LS_CONFIG);
@@ -4151,6 +5091,16 @@
     if (unit !== measureUnit) { pf.setMeasureUnit(unit); changed = true; }
     if (lang !== curLang && pf.applyLang) { pf.applyLang(lang); changed = true; }
     if (changed && pf.render) pf.render();
+    if (Storage.loadTemplatesFromIDB) {
+      Storage.loadTemplatesFromIDB().then(function (idbTemplates) {
+        if (!idbTemplates || (!idbTemplates.length && templates.length)) return;
+        if (JSON.stringify(idbTemplates) !== JSON.stringify(templates)) {
+          if (pf.setTemplates) pf.setTemplates(idbTemplates);
+          else { templates = idbTemplates; persistTemplates(); }
+          if (pf.render) pf.render();
+        }
+      }).catch(function () {});
+    }
   }).catch(function () {});
 
   // Exponer API y referencias en PulseFit
@@ -4163,7 +5113,9 @@
       cardioConfig: cardioConfig,
       weeklyPlan: weeklyPlan,
       measures: measures,
-      measureUnit: measureUnit
+      measureUnit: measureUnit,
+      templates: templates,
+      routineTemplates: templates
     };
   };
   window.PulseFit.getDays = function () { return days; };
@@ -4191,7 +5143,7 @@
   window.PulseFit.setCardioConfig = function (c) {
     c = c || {};
     if (c.goal && CARDIO_GOALS[c.goal]) cardioConfig.goal = c.goal;
-    if (Array.isArray(c.equipment) && c.equipment.length) cardioConfig.equipment = c.equipment;
+    if (Array.isArray(c.equipment) && c.equipment.length) cardioConfig.equipment = normalizeCardioEquipment(c.equipment);
     ['plan', 'mode', 'enabled'].forEach(function (k) {
       if (typeof c[k] === 'string' || typeof c[k] === 'boolean') cardioConfig[k] = c[k];
       else delete cardioConfig[k];
@@ -4216,6 +5168,18 @@
     measureUnit = (u === 'lb') ? 'lb' : 'kg';
     window.PulseFit.measureUnit = measureUnit;
   };
+  window.PulseFit.getTemplates = function () { return templates; };
+  window.PulseFit.setTemplates = function (list) {
+    var normalized = Storage.normalizeTemplates ? Storage.normalizeTemplates(list) : (Array.isArray(list) ? list : []);
+    templates = normalized.map(function (t) { return Storage.normalizeTemplate ? Storage.normalizeTemplate(t) : t; }).filter(Boolean);
+    if (!templates.length && Array.isArray(list)) templates = list.filter(Boolean);
+    window.PulseFit.templates = templates;
+    window.PulseFit.routineTemplates = templates;
+    if (Storage.saveTemplates) Storage.saveTemplates(templates); else save(LS_TEMPLATES, templates);
+    if (typeof renderTemplates === 'function') renderTemplates();
+  };
+  window.PulseFit.templates = templates;
+  window.PulseFit.routineTemplates = templates;
   window.PulseFit.showTab = showTab;
   window.PulseFit.resolvePlanEntry = resolvePlanEntry;
   window.PulseFit.planOptionsHtml = planOptionsHtml;
@@ -4244,6 +5208,7 @@
   window.PulseFit.measureUnit = measureUnit;
 
   handlePlanEvents();
+  if ($('btnLoadDemo')) $('btnLoadDemo').addEventListener('click', function(){ if(window.PulseFit&&window.PulseFit.loadDemoData) window.PulseFit.loadDemoData(); });
   renderCardioDetailBuilder();
   renderLiftMuscleSelect();
   renderLiftExerciseSelect({ keepSelection: false });

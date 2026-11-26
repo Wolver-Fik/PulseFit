@@ -425,6 +425,11 @@ details[open] .config-summary-arrow{transform:rotate(180deg)}
 .config-body{padding:4px 16px 16px;border-top:1px solid var(--line)}
 .config-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
 .chip-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+/* Subgrupos visuales del plan de cardio: máquinas vs. disciplinas alternativas */
+.cardio-chip-groups{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.cardio-chip-subgroup{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.cardio-chip-subgroup h4{margin:0;font-size:13px;font-weight:700;color:var(--fg)}
+.cardio-chip-subgroup .chip-group{margin-top:8px}
 .equip-chip{
   display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;
   border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;
@@ -500,7 +505,8 @@ details[open] .config-summary-arrow{transform:rotate(180deg)}
 /* ---------- Plan, calendario, comparación y medidas ---------- */
 /* Etiquetas cortas: nunca se parten con guión en pestañas o botones móviles. */
 .tab,button,.lang-select,.tag,.hist-pill,.cal-day,.plan-day,.compare-grid>*,.measure-pill,
-.measure-chart-head select{white-space:nowrap;hyphens:none;-webkit-hyphens:none}
+.measure-chart-head select,.kcal-estimate,.exercise-link,.template-name,.template-meta,
+.exercise-stat b,.exercise-stat span,.exercise-history-title,.modal-head h2{white-space:nowrap;hyphens:none;-webkit-hyphens:none}
 .btn-subtle.danger{color:var(--bad);border-color:var(--bad)}
 .btn-subtle.danger:hover{color:var(--bad);border-color:var(--bad);background:var(--soft)}
 
@@ -631,3 +637,65 @@ details[open] .config-summary-arrow{transform:rotate(180deg)}
   .compare-grid>.compare-val{font-size:12px}
   .today-plan .btn-subtle{width:100%;justify-content:center}
 }
+
+/* ---------- Etapa 2: actividades alternativas, fichas y plantillas ---------- */
+.kcal-estimate{
+  margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg);font-size:12px;color:var(--muted);
+}
+.exercise-link{
+  border:0;background:none;padding:0;color:var(--accent);font:inherit;font-weight:600;
+  text-align:left;text-decoration:underline;text-underline-offset:2px;
+}
+.exercise-link:hover{color:var(--fg)}
+
+.template-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end}
+.template-actions{align-self:end}
+.template-form input,.template-form select{font-size:13px}
+.template-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.template-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);
+}
+.template-item-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.template-name{font-family:var(--head);font-size:14px;font-weight:700;color:var(--fg);overflow:hidden;text-overflow:ellipsis}
+.template-meta{font-size:12px;color:var(--muted)}
+.template-item .actions{gap:6px}
+.template-item button{padding:6px 10px;font-size:12px}
+.chart-select-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chart-select-wrap .btn-subtle{padding:7px 10px;font-size:12px;flex-shrink:0}
+
+.modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px}
+.modal-backdrop{position:absolute;inset:0;background:rgba(6,14,12,.62)}
+.modal-card{
+  position:relative;width:min(560px,100%);max-height:min(86vh,780px);overflow-y:auto;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);min-width:0;
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.modal-head h2{font-size:17px;overflow:hidden;text-overflow:ellipsis}
+.modal-head .icon-btn{font-size:20px;line-height:1;flex-shrink:0}
+.exercise-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:14px 0}
+.exercise-stat{
+  display:flex;flex-direction:column;gap:2px;padding:10px;border:1px solid var(--line);
+  border-radius:10px;background:var(--bg);
+}
+.exercise-stat b{font-family:var(--head);font-size:18px;color:var(--accent);font-variant-numeric:tabular-nums}
+.exercise-stat span{font-size:12px;color:var(--muted)}
+.exercise-chart{
+  padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);
+  min-height:140px;overflow:hidden;
+}
+.exercise-chart svg{display:block;width:100%;height:auto}
+.exercise-chart .chart-empty{color:var(--muted);font-size:13px;padding:18px 4px;margin:0}
+.exercise-history-title{margin:14px 0 2px;color:var(--fg);font-size:14px}
+@media (max-width:420px){
+  .modal{padding:8px}
+  .modal-card{padding:12px}
+  .template-item .actions{width:100%}
+}
+
+
+/* Etapa 2: evitar cortes/guiones en etiquetas móviles */
+.label, .btn-subtle, .pill, .tab, .seg button, .week-day-name, .tpl-name, .cal-legend, .stat-label, .exercise-stat span, [data-i18n] { white-space: normal; overflow-wrap: break-word; word-break: normal; hyphens: none; -webkit-hyphens: none; }
+.btn, .btn-subtle, .tab, .seg button, .pill { hyphens: none; -webkit-hyphens: none; word-break: keep-all; }

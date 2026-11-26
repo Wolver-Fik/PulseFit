@@ -116,14 +116,14 @@
           <span style="font-family:var(--head);font-size:16px;font-weight:700;" data-i18n="cfgCardioTitle">Configurar Plan de Cardio</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="tag yes" id="cardioCfgBadge">Quema de Grasa · 8 máquinas</span>
+          <span class="tag yes" id="cardioCfgBadge">Quema de Grasa · 14 opciones</span>
           <span class="config-summary-arrow" aria-hidden="true">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </span>
         </div>
       </summary>
       <div class="config-body">
-        <p class="sub" data-i18n="cfgCardioSub" style="font-size:13px;margin:8px 0 14px;color:var(--muted)">Personalizá tu plan según tu objetivo de cardio y máquinas o materiales disponibles.</p>
+        <p class="sub" data-i18n="cfgCardioSub" style="font-size:13px;margin:8px 0 14px;color:var(--muted)">Personaliza tu plan según tu objetivo de cardio y las modalidades, máquinas y actividades disponibles.</p>
         <div class="config-grid">
           <label for="cardioCfgGoal">
             <span data-i18n="labelCardioGoal">Objetivo de Cardio</span>
@@ -137,13 +137,22 @@
         </div>
         <div class="group" style="margin-top:14px">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-            <h3 data-i18n="labelCardioEquipAvailable">Material / Máquinas de Cardio disponibles</h3>
+            <h3 data-i18n="labelCardioEquipAvailable">Modalidades, Máquinas y Actividades Disponibles</h3>
             <div class="actions" style="margin-top:0">
               <button type="button" class="btn-subtle" id="btnCardioAllGym" data-i18n="btnCardioAllGym">Todo el Gimnasio</button>
               <button type="button" class="btn-subtle" id="btnCardioHomeOutdoor" data-i18n="btnCardioHomeOutdoor">Solo Casa / Aire Libre</button>
             </div>
           </div>
-          <div class="chip-group" id="cardioEquipChips"></div>
+          <div id="cardioEquipChips" class="cardio-chip-groups">
+            <section class="cardio-chip-subgroup">
+              <h4 data-i18n="cardioEquipGroupMachines">Máquinas y Equipamiento</h4>
+              <div class="chip-group" data-cardio-chip-group="machines"></div>
+            </section>
+            <section class="cardio-chip-subgroup">
+              <h4 data-i18n="cardioEquipGroupActivities">Deportes y Disciplinas Alternativas</h4>
+              <div class="chip-group" data-cardio-chip-group="activities"></div>
+            </section>
+          </div>
         </div>
       </div>
     </details>
@@ -172,6 +181,8 @@
       <form id="f">
         <input type="hidden" id="date">
         <label for="cardioActivity"><span data-i18n="labelCardioActivity">Máquina / Actividad</span><select id="cardioActivity"></select></label>
+        <label for="cardioCustomActivity" id="cardioCustomWrap" class="wide" hidden><span data-i18n="labelCustomActivity">Nombre de la actividad</span><input type="text" id="cardioCustomActivity" data-i18n-ph="phCustomActivity" placeholder="Ej: senderismo, patinaje"></label>
+        <label for="cardioCustomName" id="cardioCustomNameWrap" class="wide" hidden><span data-i18n="labelCustomActivity">Nombre de la actividad</span><input type="text" id="cardioCustomName" data-i18n-ph="phCustomActivity" placeholder="Ej: Pádel, Escalada"></label>
         <label for="minutes"><span data-i18n="labelCardioMinutes">Duración (min)</span><input type="number" id="minutes" step="1" min="0" inputmode="numeric" required></label>
         <label for="cardioIntensity"><span data-i18n="labelCardioIntensity">Intensidad</span>
           <select id="cardioIntensity">
@@ -181,8 +192,10 @@
           </select>
         </label>
         <label for="steps"><span data-i18n="labelCardioSteps">Pasos (opcional)</span><input type="number" id="steps" step="1" min="0" inputmode="numeric"></label>
-        <label for="km"><span data-i18n="labelCardioKm">Distancia km (opcional)</span><input type="number" id="km" step="0.01" min="0" inputmode="decimal"></label>
+        <label for="km"><span data-i18n="labelKm">Distancia (km)</span><input type="number" id="km" step="0.01" min="0" inputmode="decimal"></label>
+        <label for="cardioLaps"><span data-i18n="labelCardioLaps">Vueltas / series / rondas (opcional)</span><input type="text" id="cardioLaps" data-i18n-ph="phCardioLaps" placeholder="Ej: 20 vueltas, 6 rondas"></label>
         <label for="kcal"><span data-i18n="labelKcal">Calorías activas</span><input type="number" id="kcal" step="1" min="0" inputmode="numeric"></label>
+        <p class="wide kcal-estimate" id="kcalEstimate" role="status" hidden></p>
         <label class="check wide" for="ex"><input type="checkbox" id="ex" checked> <span data-i18n="labelCardioDone">Sesión de cardio completada</span></label>
         <!-- Constructor dinámico: los controles se generan según la máquina elegida -->
         <div class="wide detail-builder" id="cardioDetailBuilder"></div>
@@ -228,7 +241,7 @@
         </div>
       </summary>
       <div class="config-body">
-        <p class="sub" data-i18n="cfgRoutineSub" style="font-size:13px;margin:8px 0 14px;color:var(--muted)">Personalizá tu rutina según tu objetivo, división y equipamiento disponible.</p>
+        <p class="sub" data-i18n="cfgRoutineSub" style="font-size:13px;margin:8px 0 14px;color:var(--muted)">Personaliza tu rutina según tu objetivo, división y equipamiento disponible.</p>
         <div class="config-grid">
           <label for="cfgGoal">
             <span data-i18n="labelGoal">Objetivo</span>
@@ -291,6 +304,22 @@
         <summary data-i18n="progressionTitle">Cómo progresar</summary>
         <ul id="progList"></ul>
       </details>
+    </section>
+
+    <!-- Plantillas guardables/duplicables de cualquier rutina -->
+    <section class="panel" id="templatesPanel" aria-labelledby="h-templates">
+      <h2 id="h-templates" data-i18n="hTemplates">Plantillas de rutina</h2>
+      <p class="sub" data-i18n="templatesDesc" style="font-size:13px;margin:2px 0 12px;color:var(--muted)">Guardá tu rutina actual o una personalizada para cargarla cuando quieras.</p>
+      <div class="template-form">
+        <label for="templateSource"><span data-i18n="templateSource">Rutina de origen</span><select id="templateSource"></select></label>
+        <label for="templateName"><span data-i18n="templateName">Nombre de la plantilla</span><input type="text" id="templateName" data-i18n-ph="phTemplateName" placeholder="Ej: Rutina en casa A"></label>
+        <div class="actions template-actions">
+          <button type="button" id="btnSaveTemplate" class="btn-subtle" data-i18n="btnSaveTemplate">Guardar como plantilla</button>
+          <button type="button" id="btnDuplicateTemplate" class="btn-subtle" data-i18n="btnDuplicateTemplate">Duplicar rutina</button>
+        </div>
+      </div>
+      <div class="template-list" id="templateList"></div>
+      <p class="msg" id="templateMsg" role="status"></p>
     </section>
 
     <section class="panel" aria-labelledby="h-lift">
@@ -370,6 +399,7 @@
         <div class="chart-select-wrap">
           <label for="chartExSelect" class="sr-only" data-i18n="labelSelectExercise">Seleccionar ejercicio</label>
           <select id="chartExSelect" class="chart-select" aria-label="Seleccionar ejercicio" data-i18n-aria="labelSelectExercise"></select>
+          <button type="button" id="btnExerciseDetail" class="btn-subtle" data-i18n="btnExerciseDetail">Ver ficha</button>
         </div>
       </div>
       <p class="empty" id="chartEmpty" data-i18n="emptyChart" hidden>Todavía no registraste ejercicios con peso para graficar.</p>
@@ -388,6 +418,8 @@
         <button type="button" id="btnExportBackup" class="btn-subtle" data-i18n="btnExportBackup">Exportar respaldo (.json)</button>
         <button type="button" id="btnImportBackup" class="btn-subtle" data-i18n="btnImportBackup">Importar respaldo</button>
         <button type="button" id="btnResetData" class="btn-subtle danger" data-i18n="btnResetData">Reiniciar datos</button>
+        <button type="button" id="btnDemoMode" class="btn-subtle" data-i18n="btnDemoMode">Cargar datos de ejemplo (Demo)</button>
+        <button type="button" id="btnLoadDemo" class="btn-subtle" data-i18n="btnLoadDemo">Cargar demo</button>
         <input type="file" id="importInput" accept=".json,application/json" hidden>
         <span class="msg" id="backupMsg" role="status"></span>
       </div>
@@ -426,8 +458,29 @@
 
     <section class="panel" aria-labelledby="h-weekplan">
       <h2 id="h-weekplan" data-i18n="hWeekPlan">Plan semanal</h2>
+      <div class="template-plan-block" style="margin:8px 0 12px">
+        <div class="row" style="gap:8px;align-items:end;flex-wrap:wrap">
+          <label style="flex:1;min-width:160px"><span data-i18n="templateDayLabel">Día</span><select id="templateDaySelect"></select></label>
+        </div>
+        <div class="template-list" id="templateListPlan"></div>
+      </div>
       <p class="sub" data-i18n="planWeekDesc" style="font-size:13px;margin:2px 0 10px;color:var(--muted)">Elegí la rutina o el descanso de cada día.</p>
       <div class="week-plan" id="weekPlan"></div>
+    </section>
+
+    <!-- Las mismas plantillas se pueden cargar y borrar desde esta pestaña -->
+    <section class="panel" id="planTemplatesPanel" aria-labelledby="h-plan-templates">
+      <h2 id="h-plan-templates" data-i18n="hPlanTemplates">Plantillas en el plan</h2>
+      <p class="sub" data-i18n="planTemplatesDesc" style="font-size:13px;margin:2px 0 10px;color:var(--muted)">Aplicá una plantilla guardada a los días de entrenamiento.</p>
+      <div class="template-form">
+        <label for="planTemplateSelect"><span data-i18n="templateSource">Rutina de origen</span><select id="planTemplateSelect"></select></label>
+        <div class="actions template-actions">
+          <button type="button" id="btnApplyPlanTemplate" class="btn-subtle" data-i18n="btnApplyPlanTemplate">Aplicar a la semana</button>
+          <button type="button" id="btnDeletePlanTemplate" class="btn-subtle danger" data-i18n="btnDeletePlanTemplate">Eliminar plantilla</button>
+        </div>
+      </div>
+      <div class="template-list" id="planTemplateList"></div>
+      <p class="msg" id="planTemplateMsg" role="status"></p>
     </section>
 
     <section class="panel" aria-labelledby="h-compare">
@@ -506,6 +559,28 @@
     </div>
   </aside>
 </main>
+
+<!-- Ficha detallada de un ejercicio (PR, volumen, historial y evolución) -->
+<div id="exerciseModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle" hidden>
+  <div class="modal-backdrop" data-close-exercise></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <h2 id="exerciseModalTitle"></h2>
+        <p id="exerciseModalSub" class="sub" style="margin:4px 0 0"></p>
+      </div>
+      <button type="button" class="icon-btn" id="btnCloseExercise" data-close-exercise aria-label="Cerrar">×</button>
+      <button type="button" class="icon-btn" id="exerciseModalClose" data-close-exercise aria-label="Cerrar" hidden>×</button>
+    </div>
+    <div class="exercise-stats" id="exerciseStats"></div>
+    <div class="exercise-stats" id="exerciseModalStats" hidden></div>
+    <div class="exercise-chart" id="exerciseChart"></div>
+    <div class="exercise-chart" id="exerciseModalChart" hidden></div>
+    <h3 class="exercise-history-title" data-i18n="exDetailHistory">Historial cronológico</h3>
+    <div class="hist-list" id="exerciseHistory"></div>
+    <div class="hist-list" id="exerciseModalHistory" hidden></div>
+  </div>
+</div>
 
 
 <script src="./js/i18n/es.js"></script>

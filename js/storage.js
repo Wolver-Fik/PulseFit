@@ -12,6 +12,104 @@
   var LS_MEASURES = 'pulsefit_body_measures';
   var LS_MEASURE_UNIT = 'pulsefit_measure_unit';
 
+  /* ---------- Capa IndexedDB (Etapa 1) ----------
+     Espejo completo de localStorage en IndexedDB + store de archivos para
+     imagenes/recortes sin el limite de 5 MB. La API sincrona no cambia. */
+  var DB_NAME = 'pulsefit_db';
+  var DB_VERSION = 1;
+  var SCHEMA_VERSION = 3;
+  var STORE_STATE = 'state';
+  var STORE_FILES = 'files';
+  var STATE_KEY = 'main';
+  var dbPromise = null, idbReady = false, idbFailed = false;
+  var initPromise = null, writeChain = Promise.resolve(), memoryBackup = null;
+
+  function idbOpen() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise(function (resolve, reject) {
+      if (!('indexedDB' in window)) { reject(new Error('IndexedDB no disponible')); return; }
+      var req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains(STORE_STATE)) db.createObjectStore(STORE_STATE);
+        if (!db.objectStoreNames.contains(STORE_FILES)) db.createObjectStore(STORE_FILES, { keyPath: 'id' });
+      };
+      req.onsuccess = function () { idbReady = true; resolve(req.result); };
+      req.onerror = function () { idbFailed = true; reject(req.error || new Error('No se pudo abrir IndexedDB')); };
+      req.onblocked = function () { idbFailed = true; reject(new Error('IndexedDB bloqueada')); };
+    });
+    return dbPromise;
+  }
+  function idbRequest(db, store, mode, run) {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(store, mode), os = tx.objectStore(store), result;
+      try { result = run(os); } catch (e) { reject(e); return; }
+      tx.oncomplete = function () { resolve(result && result.result !== undefined ? result.result : undefined); };
+      tx.onerror = function () { reject(tx.error || new Error('Error de IndexedDB')); };
+      tx.onabort = function () { reject(tx.error || new Error('Transaccion abortada')); };
+    });
+  }
+  function idbGet(store, key) {
+    return idbOpen().then(function (db) { return idbRequest(db, store, 'readonly', function (os) { return os.get(key); }) });
+  }
+  function idbGetAll(store) {
+    return idbOpen().then(function (db) { return idbRequest(db, store, 'readonly', function (os) { return os.getAll(); }) });
+  }
+  function idbPut(store, key, value) {
+    return idbOpen().then(function (db) {
+      return idbRequest(db, store, 'readwrite', function (os) { return key === undefined ? os.put(value) : os.put(value, key) });
+    });
+  }
+  function idbDelete(store, key) {
+    return idbOpen().then(function (db) { return idbRequest(db, store, 'readwrite', function (os) { return os.delete(key); }) });
+  }
+  function dumpLocal() {
+    var dump = {};
+    try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); dump[k] = localStorage.getItem(k); } } catch (e) {}
+    return dump;
+  }
+  function applyDump(dump) {
+    Object.keys(dump || {}).forEach(function (k) {
+      try { if (dump[k] !== null && dump[k] !== undefined) localStorage.setItem(k, dump[k]); } catch (e) {}
+    });
+  }
+  function writeIDB(dump) {
+    writeChain = writeChain.then(function () {
+      return idbPut(STORE_STATE, STATE_KEY, {
+        schemaVersion: SCHEMA_VERSION, app: 'pulsefit', localStorage: dump,
+        updatedAt: new Date().toISOString()
+      });
+    }).catch(function () { idbFailed = true; });
+    return writeChain;
+  }
+  function initIDB() {
+    if (initPromise) return initPromise;
+    initPromise = idbOpen().then(function () { return idbGet(STORE_STATE, STATE_KEY); })
+      .then(function (rec) {
+        var local = dumpLocal();
+        if (!rec) { writeIDB(local); return; }
+        var remote = (rec.localStorage && typeof rec.localStorage === 'object') ? rec.localStorage : {};
+        var merged = {}, k;
+        for (k in remote) if (Object.prototype.hasOwnProperty.call(remote, k)) merged[k] = remote[k];
+        for (k in local) if (Object.prototype.hasOwnProperty.call(local, k)) merged[k] = local[k];
+        applyDump(merged);
+        writeIDB(merged);
+      }).catch(function () { idbFailed = true; });
+    return initPromise;
+  }
+  function whenReady() { return initIDB(); }
+  function putFile(id, data, meta) {
+    var rec = {
+      id: String(id), data: data, type: (meta && meta.type) || '', name: (meta && meta.name) || '',
+      size: typeof data === 'string' ? data.length : ((data && data.size) || 0),
+      schemaVersion: SCHEMA_VERSION, createdAt: new Date().toISOString()
+    };
+    return idbPut(STORE_FILES, undefined, rec);
+  }
+  function getFile(id) { return idbGet(STORE_FILES, String(id)); }
+  function listFiles() { return idbGetAll(STORE_FILES); }
+  function deleteFile(id) { return idbDelete(STORE_FILES, String(id)); }
+
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
   function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function today() { var d = new Date(); d.setHours(12, 0, 0, 0); return d; }
@@ -238,6 +336,7 @@
     if (pf.setMeasures) pf.setMeasures({});
     if (pf.setMeasureUnit) pf.setMeasureUnit('kg');
     if (pf.render) pf.render();
+    writeIDB(dumpLocal());
     var sayFn = pf.say || function () {};
     var tFn = pf.t || function (k) { return k; };
     sayFn('backupMsg', tFn('resetDataDone'));
@@ -246,8 +345,10 @@
   function load(key) {
     try {
       var g = JSON.parse(localStorage.getItem(key) || 'null');
+      initIDB();
       return g && typeof g === 'object' ? g : {};
     } catch (e) {
+      initIDB();
       return {};
     }
   }
@@ -256,6 +357,7 @@
     try {
       localStorage.setItem(key, JSON.stringify(obj));
     } catch (e) {}
+    writeIDB(dumpLocal());
   }
 
   function loadDays() {
@@ -349,6 +451,7 @@
 
       var backupData = {
         app: 'PulseFit',
+        schemaVersion: SCHEMA_VERSION,
         version: 3,
         exportDate: iso(today()),
         exportedAt: new Date().toISOString(),
@@ -385,16 +488,61 @@
     }
   }
 
+  /* Valida origen/estructura del respaldo antes de escribir nada. */
+  function validateBackup(data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return { ok: false, msgText: 'El archivo no contiene un respaldo válido.' };
+    }
+    if (data.app && String(data.app).toLowerCase() !== 'pulsefit') {
+      return { ok: false, msgText: 'Este respaldo pertenece a otra aplicación y no se importará.' };
+    }
+    var sv = data.schemaVersion == null ? (typeof data.version === 'number' ? data.version : 1) : Number(data.schemaVersion);
+    if (!isFinite(sv) || sv < 1 || sv > SCHEMA_VERSION) {
+      return { ok: false, msgText: 'La versión de esquema del respaldo no es compatible.' };
+    }
+    var fields = ['days', 'lifts', 'weeklyPlan', 'measures', 'localStorage', 'pulsefit_routine_config', 'pulsefit_cardio_config'];
+    if (!fields.some(function (k) { return data[k] !== undefined; })) {
+      return { ok: false, msgText: 'El respaldo está incompleto: no se reconocen registros de PulseFit.' };
+    }
+    if (data.days !== undefined && (typeof data.days !== 'object' || Array.isArray(data.days))) {
+      return { ok: false, msgText: 'El respaldo está dañado: los entrenamientos no son válidos.' };
+    }
+    if (data.lifts !== undefined && (typeof data.lifts !== 'object' || Array.isArray(data.lifts))) {
+      return { ok: false, msgText: 'El respaldo está dañado: las pesadas no son válidas.' };
+    }
+    if (data.localStorage !== undefined && (typeof data.localStorage !== 'object' || Array.isArray(data.localStorage))) {
+      return { ok: false, msgText: 'El respaldo está dañado: el estado local no es válido.' };
+    }
+    return { ok: true, version: sv };
+  }
+  function restoreLocal(dump) {
+    try {
+      var keys = [];
+      for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+      keys.forEach(function (k) { if (!Object.prototype.hasOwnProperty.call(dump, k)) localStorage.removeItem(k); });
+      applyDump(dump);
+    } catch (e) {}
+  }
+
   function handleImportFile(file) {
     if (!file) return;
     var reader = new FileReader();
     reader.onload = function (evt) {
       var tFn = (window.PulseFit && window.PulseFit.t) || function (k) { return k; };
       var sayFn = (window.PulseFit && window.PulseFit.say) || function () {};
+      /* Copia de seguridad en memoria (localStorage + estado vivo) antes de
+         sobrescribir nada: los setters de app.js mutan referencias compartidas. */
+      memoryBackup = dumpLocal();
+      var memState = null;
+      try {
+        memState = (window.PulseFit && window.PulseFit.getState) ?
+          JSON.parse(JSON.stringify(window.PulseFit.getState())) : null;
+      } catch (e) {}
       try {
         var raw = evt.target.result;
         var parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') throw new Error('Invalid format');
+        var check = validateBackup(parsed);
+        if (!check.ok) throw new Error(check.msgText);
 
         if (parsed.localStorage && typeof parsed.localStorage === 'object') {
           Object.keys(parsed.localStorage).forEach(function (k) {
@@ -479,9 +627,25 @@
           window.PulseFit.render();
         }
 
+        memoryBackup = null;
         sayFn('backupMsg', tFn('backupImportSuccess'));
       } catch (err) {
-        sayFn('backupMsg', tFn('backupImportError'), true);
+        if (memoryBackup) restoreLocal(memoryBackup);
+        var pf = window.PulseFit || {};
+        if (memState) {
+          if (pf.setDays) pf.setDays(memState.days || {});
+          if (pf.setLifts) pf.setLifts(memState.lifts || {});
+          if (pf.setPlan) pf.setPlan(memState.weeklyPlan || defaultPlan());
+          if (pf.setMeasures) pf.setMeasures(memState.measures || {});
+          if (pf.setRoutineConfig) pf.setRoutineConfig(memState.routineConfig || {});
+          if (pf.setCardioConfig) pf.setCardioConfig(memState.cardioConfig || {});
+          if (pf.setMeasureUnit) pf.setMeasureUnit(memState.measureUnit || 'kg');
+          try { localStorage.setItem(LS_MEASURE_UNIT, memState.measureUnit || 'kg'); } catch (e) {}
+          if (pf.applyLang && memState.curLang) pf.applyLang(memState.curLang);
+          else if (pf.render) pf.render();
+        }
+        writeIDB(dumpLocal());
+        sayFn('backupMsg', (err && err.message && err.message.indexOf('respaldo') >= 0) ? err.message : tFn('backupImportError'), true);
       } finally {
         var inp = document.getElementById('importInput');
         if (inp) inp.value = '';
@@ -570,7 +734,17 @@
     resetAllData: resetAllData,
     exportBackup: exportBackup,
     handleImportFile: handleImportFile,
-    initBackupEvents: initBackupEvents
+    validateBackup: validateBackup,
+    initBackupEvents: initBackupEvents,
+    /* Etapa 1: almacenamiento durable y sin limite de 5 MB */
+    DB_NAME: DB_NAME,
+    SCHEMA_VERSION: SCHEMA_VERSION,
+    whenReady: whenReady,
+    isIndexedDBReady: function () { return idbReady && !idbFailed; },
+    putFile: putFile,
+    getFile: getFile,
+    listFiles: listFiles,
+    deleteFile: deleteFile
   };
 
   window.PulseFitStorage = PulseFitStorage;

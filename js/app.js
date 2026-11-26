@@ -4126,6 +4126,32 @@
   weeklyPlan = normalizePlan(Storage.loadPlan ? Storage.loadPlan() : load(LS_PLAN));
   measures = (Storage.loadMeasures ? Storage.loadMeasures() : load(LS_MEASURES)) || {};
   measureUnit = loadMeasureUnit();
+  /* Migracion asincrona a IndexedDB: se refleja solo si el estado cambio. */
+  if (Storage.whenReady) Storage.whenReady().then(function () {
+    var pf = window.PulseFit, changed = false;
+    var d = Storage.loadDays ? Storage.loadDays() : load(LS_DAYS);
+    var l = Storage.loadLifts ? Storage.loadLifts() : load(LS_LIFTS);
+    var plan = normalizePlan(Storage.loadPlan ? Storage.loadPlan() : load(LS_PLAN));
+    var m = (Storage.loadMeasures ? Storage.loadMeasures() : load(LS_MEASURES)) || {};
+    var rc = Object.assign({}, routineConfig), cc = Object.assign({}, cardioConfig);
+    if (Storage.loadConfig) Storage.loadConfig(rc, GOALS, SPLIT_DAYS);
+    else rc = load(LS_CONFIG);
+    if (Storage.loadCardioConfig) Storage.loadCardioConfig(cc, CARDIO_GOALS);
+    else cc = load(LS_CARDIO_CONFIG);
+    var unit = 'kg', lang = curLang;
+    try { unit = localStorage.getItem(LS_MEASURE_UNIT) === 'lb' ? 'lb' : 'kg'; } catch (e) {}
+    try { lang = localStorage.getItem(LS_LANG) || curLang; } catch (e) {}
+
+    if (JSON.stringify(d) !== JSON.stringify(days)) { pf.setDays(d); changed = true; }
+    if (JSON.stringify(l) !== JSON.stringify(lifts)) { pf.setLifts(l); changed = true; }
+    if (JSON.stringify(plan) !== JSON.stringify(weeklyPlan)) { pf.setPlan(plan); changed = true; }
+    if (JSON.stringify(m) !== JSON.stringify(measures)) { pf.setMeasures(m); changed = true; }
+    if (JSON.stringify(rc) !== JSON.stringify(routineConfig)) { pf.setRoutineConfig(rc); changed = true; }
+    if (JSON.stringify(cc) !== JSON.stringify(cardioConfig)) { pf.setCardioConfig(cc); changed = true; }
+    if (unit !== measureUnit) { pf.setMeasureUnit(unit); changed = true; }
+    if (lang !== curLang && pf.applyLang) { pf.applyLang(lang); changed = true; }
+    if (changed && pf.render) pf.render();
+  }).catch(function () {});
 
   // Exponer API y referencias en PulseFit
   window.PulseFit.getState = function () {

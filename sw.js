@@ -1,6 +1,8 @@
 ﻿// Guarda la app en el dispositivo para que abra sin conexiÃ³n.
 // Si cambiÃ¡s algÃºn archivo, subÃ­ la versiÃ³n nueva y cambiÃ¡ el nÃºmero de CACHE para que se actualice.
-var CACHE = 'pulsefit-v25';
+/* Etapa 1: sube la version con cada cambio. activate solo purga CacheStorage:
+   nunca elimina IndexedDB (pulsefit_db) ni localStorage. */
+var CACHE = 'pulsefit-v26';
 var SHELL = [
   './',
   './index.html',
@@ -37,7 +39,7 @@ self.addEventListener('activate', function (e) {
     caches.keys()
       .then(function (keys) {
         return Promise.all(
-          keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); })
+          keys.filter(function (k) { return k.indexOf('pulsefit-') === 0 && k !== CACHE; }).map(function (k) { return caches.delete(k); })
         );
       })
       .then(function () { return self.clients.claim(); })

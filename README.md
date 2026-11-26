@@ -25,7 +25,7 @@
 * **Offline-First & Auto-Updating:** Installable PWA with a `Network-First` Service Worker that updates silently in the background.
 * **Total Privacy**: All data is stored locally on your device via `localStorage`. No external servers, logins, or tracking.
 
-* ### 📱 Installing as a Mobile App
+### 📱 Installing as a Mobile App
 
 Because PulseFit is a **Progressive Web App (PWA)** served over HTTPS, you can install it directly to your home screen:
 

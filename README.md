@@ -23,6 +23,8 @@
 * **Period Performance Comparison:** Compare volume, distance and consistency between any two periods to spot real progress.
 * **Body Measurements & Weight Log:** Record weight and body measurements over time and review their evolution next to your workouts.
 * **Progress Analytics (`Chart.js`):** Tracks maximum lifted weight (`kg`) progression, personal records, and session totals.
+* **Reusable routine templates & alternative cardio:** Save strength templates and log alternative cardio activities (equipment, intensity, intervals and terrain); JSON backups include the templates with `schemaVersion`, `appId` and the export date.
+* **Smooth 60fps history:** Long histories, measurements and progression charts render only the latest 50 entries with a "show more" expander, and imports reject backups from other apps without erasing current data.
 * **Data Sovereignty:** 100% private `localStorage` persistence with one-click `.json` backup export and import.
 * **8 Languages:** Full UI and date/number localization in **EN, ES, PT, FR, IT, DE, RU, JA**.
 * **Automatic Dark / Light Theme**: Seamlessly matches your system appearance.
@@ -71,6 +73,8 @@ Because PulseFit is a **Progressive Web App (PWA)** served over HTTPS, you can i
 * **Comparación de rendimiento entre periodos:** Contrasta volumen, distancia y constancia entre dos periodos para detectar avances reales.
 * **Registro de medidas corporales y peso:** Anota tu peso y tus medidas corporales y revisa su evolución junto a los entrenamientos.
 * **Gráficos de Evolución (`Chart.js`):** Visualiza la progresión de peso máximo (`kg`) por ejercicio, récords personales y totales acumulados.
+* **Plantillas de rutina y cardio alternativo:** Guarda plantillas de fuerza y registra actividades de cardio alternativas (equipo, intensidad, intervalos y terreno); el JSON incluye las plantillas con `schemaVersion`, `appId` y la fecha de exportación.
+* **Historial fluido a 60 fps:** Los historiales largos, las medidas y los gráficos muestran solo las últimas 50 entradas con un desplegable «Ver más», y la importación rechaza copias de otra app sin borrar tus datos.
 * **Respaldo de Datos (JSON):** Almacenamiento 100% local en `localStorage` con exportación e importación en un clic (`.json`).
 * **8 Idiomas:** Interfaz y formatos regionales en **ES, EN, PT, FR, IT, DE, RU, JA**.
 * **Modo oscuro automático**: Se adapta dinámicamente a la preferencia de color del sistema operativo.

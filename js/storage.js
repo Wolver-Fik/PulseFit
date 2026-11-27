@@ -540,6 +540,7 @@
 
       var backupData = {
         app: 'PulseFit',
+        appId: 'pulsefit',
         schemaVersion: SCHEMA_VERSION,
         version: 4,
         exportDate: iso(today()),
@@ -587,6 +588,9 @@
       return { ok: false, msgText: 'El archivo no contiene un respaldo válido.' };
     }
     if (data.app && String(data.app).toLowerCase() !== 'pulsefit') {
+      return { ok: false, msgText: 'Este respaldo pertenece a otra aplicación y no se importará.' };
+    }
+    if (data.appId && String(data.appId).toLowerCase() !== 'pulsefit') {
       return { ok: false, msgText: 'Este respaldo pertenece a otra aplicación y no se importará.' };
     }
     var sv = data.schemaVersion == null ? (typeof data.version === 'number' ? data.version : 1) : Number(data.schemaVersion);

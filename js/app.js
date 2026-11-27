@@ -8,6 +8,8 @@
   var LOCALE = { es: 'es-ES', en: 'en-US', pt: 'pt-BR', fr: 'fr-FR', it: 'it-IT', de: 'de-DE', ru: 'ru-RU', ja: 'ja-JP' };
   var curLang = 'es';
   var I18N = window.PULSEFIT_I18N || {};
+  /* Etapa 3: topes de renderizado para mantener 60 fps en móvil. */
+  var HIST_LIMIT = 50, EX_HIST_LIMIT = 50, MEASURE_LIMIT = 50, MEASURE_CHART_LIMIT = 60;
 
   var ALL_EXERCISES = [
     // Pecho
@@ -2677,7 +2679,7 @@
       var field = MEASURE_FIELDS.filter(function (f) { return f.key === measureMetric; })[0] || MEASURE_FIELDS[0];
       var points = list.filter(function (it) { return num(it.v[field.key]) > 0; }).map(function (it) {
         return { date: it.v.date, value: convertMeasure(it.v[field.key], field, it.v.unit || 'kg', measureUnit) };
-      });
+      }).slice(-MEASURE_CHART_LIMIT);
       chartBox.innerHTML = measureSvg(points, field.mass ? measureUnit : 'cm');
     }
 
@@ -2686,7 +2688,7 @@
       if (!list.length) {
         listBox.innerHTML = '<p class="empty">' + esc(t('measureEmpty')) + '</p>';
       } else {
-        listBox.innerHTML = list.slice().reverse().map(function (it) {
+        var cards = list.slice().reverse().map(function (it) {
           var v = it.v;
           var main = '<span class="hist-date">' + esc(fmtDate(v.date)) + '</span>' +
             '<span class="hist-metrics">' + MEASURE_FIELDS.filter(function (f) { return num(v[f.key]) > 0; }).map(function (f) {
@@ -2694,7 +2696,11 @@
               return histPill(t(f.label) + ' ' + fmt(value, 1) + (f.mass ? ' ' + measureUnit : ' cm'));
             }).join('') + '</span>';
           return histCard(main, '', measureDeleteButton(it.id, fmtDate(v.date)));
-        }).join('');
+        });
+        var shownCards = cards.slice(0, MEASURE_LIMIT).join('');
+        var restCards = cards.slice(MEASURE_LIMIT).join('');
+        listBox.innerHTML = shownCards + (restCards ? '<details class="hist-more-wrap"><summary class="hist-more">' +
+          esc(compactDict().showMore) + ' (' + (cards.length - MEASURE_LIMIT) + ')</summary>' + restCards + '</details>' : '');
       }
     }
   }
@@ -3566,10 +3572,9 @@
     if (sub) sub.textContent = dates.length ? (dates.length + ' ' + t('exerciseSessions')) : t('exerciseNoHistory');
 
     var chartHtml = '';
-    var chartHtml = '';
     var chartEl = $('exerciseChart');
     if (chartEl) {
-      chartHtml = dates.length ? buildExerciseProgressionSvg(dates.map(function (d) { return { date: d, kg: byDate[d].kg }; })) :
+      chartHtml = dates.length ? buildExerciseProgressionSvg(dates.slice(-EX_HIST_LIMIT).map(function (d) { return { date: d, kg: byDate[d].kg }; })) :
         '<p class="msg" style="margin:8px 0">' + esc(t('emptyChart')) + '</p>';
       chartEl.innerHTML = chartHtml;
     }
@@ -3579,7 +3584,7 @@
     if (!dates.length) {
       histHtml = '<p class="msg">' + esc(t('exerciseNoHistory')) + '</p>';
     } else {
-      histHtml = dates.slice().reverse().map(function (date) {
+      var dateCards = dates.slice().reverse().map(function (date) {
         var day = byDate[date];
         var metrics = [
           histPill(fmt(day.kg, 1) + ' kg', 'accent'),
@@ -3590,7 +3595,11 @@
           '<span class="hist-date">' + esc(fmtDate(date)) + '</span><span class="hist-metrics">' + histMetricList(metrics) + '</span>',
           '', ''
         );
-      }).join('');
+      });
+      var firstCards = dateCards.slice(0, EX_HIST_LIMIT).join('');
+      var restCards = dateCards.slice(EX_HIST_LIMIT).join('');
+      histHtml = firstCards + (restCards ? '<details class="hist-more-wrap"><summary class="hist-more">' +
+        esc(compactDict().showMore) + ' (' + (dateCards.length - EX_HIST_LIMIT) + ')</summary>' + restCards + '</details>' : '');
     }
     if ($('exerciseHistory')) $('exerciseHistory').innerHTML = histHtml;
     if ($('exerciseModalHistory')) { $('exerciseModalHistory').innerHTML = histHtml; $('exerciseModalHistory').hidden = false; }
@@ -3740,7 +3749,10 @@
       if (a.date !== b.date) return a.date < b.date ? 1 : -1;
       return b.ts - a.ts;
     });
-    box.innerHTML = rows.map(function (r) { return r.html; }).join('');
+    var firstRows = rows.slice(0, HIST_LIMIT).map(function (r) { return r.html; }).join('');
+    var restRows = rows.slice(HIST_LIMIT).map(function (r) { return r.html; }).join('');
+    box.innerHTML = firstRows + (restRows ? '<details class="hist-more-wrap"><summary class="hist-more">' +
+      esc(compactDict().showMore) + ' (' + (rows.length - HIST_LIMIT) + ')</summary>' + restRows + '</details>' : '');
   }
 
   function autocompleteLastRecord(rawName, opts) {

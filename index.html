@@ -582,6 +582,26 @@
   </div>
 </div>
 
+<!-- Diálogo accesible reutilizable: plantillas, respaldos y confirmaciones -->
+<div id="actionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="actionModalTitle" aria-describedby="actionModalMessage" hidden>
+  <div class="modal-backdrop" data-modal-close></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="actionModalTitle"></h2>
+      <button type="button" class="icon-btn" id="btnCloseActionModal" data-modal-close data-i18n-aria="install.close" aria-label="Cerrar">×</button>
+    </div>
+    <p id="actionModalMessage" class="sub" style="margin:8px 0 14px"></p>
+    <label id="actionModalInputWrap" for="actionModalInput" hidden>
+      <span id="actionModalInputLabel"></span>
+      <input type="text" id="actionModalInput" autocomplete="off">
+    </label>
+    <div class="actions">
+      <button type="button" id="actionModalCancel" class="btn-subtle" data-modal-close data-i18n="install.close">Cerrar</button>
+      <button type="button" id="actionModalConfirm" class="btn-subtle">Aceptar</button>
+    </div>
+  </div>
+</div>
+
 
 <script src="./js/i18n/es.js"></script>
 <script src="./js/i18n/en.js"></script>

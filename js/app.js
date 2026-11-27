@@ -1240,6 +1240,180 @@
   function say(id, t, err) { var m = $(id); if (m) { m.textContent = t || ''; m.className = 'msg' + (err ? ' err' : ''); } }
   function did(s) { return !!(days[s] && days[s].exercised); }
 
+  /* ---------- modales accesibles ----------
+     Gestión ligera de foco para TODOS los diálogos: ficha de ejercicio,
+     plantillas/respaldos/confirmaciones y diálogos inyectados (guía iOS).
+     Tab/Shift+Tab quedan dentro del modal, Escape lo cierra y el foco vuelve
+     al elemento que lo abrió. */
+  var MODAL_FOCUSABLE = 'a[href],area[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),iframe,object,embed,[contenteditable="true"],[tabindex]:not([tabindex="-1"])';
+
+  function modalIsVisible(el) {
+    if (!el || el.hidden) return false;
+    var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    return !style || (style.display !== 'none' && style.visibility !== 'hidden');
+  }
+
+  function dialogFocusables(root) {
+    if (!root) return [];
+    return Array.prototype.filter.call(root.querySelectorAll(MODAL_FOCUSABLE), function (el) {
+      if (el.getAttribute('aria-hidden') === 'true' || el.tabIndex < 0) return false;
+      return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+    });
+  }
+
+  function openDialog(modal, opener, focusTarget, fallbackOpener) {
+    if (!modal) return;
+    if (!modal.hasAttribute('role')) modal.setAttribute('role', 'dialog');
+    if (!modal.hasAttribute('aria-modal')) modal.setAttribute('aria-modal', 'true');
+    if (!modal.getAttribute('aria-labelledby')) {
+      var heading = modal.querySelector('h1,h2,h3,[data-dialog-title]');
+      if (heading) {
+        if (!heading.id) heading.id = 'pfDialogTitle-' + Math.random().toString(36).slice(2, 8);
+        modal.setAttribute('aria-labelledby', heading.id);
+      }
+    }
+    var back = opener || document.activeElement;
+    if (!back || back === document.body || modal.contains(back)) back = modal.__pfOpener || null;
+    modal.__pfOpener = back;
+    modal.__pfFallbackOpener = fallbackOpener || null;
+    modal.hidden = false;
+    var target = focusTarget || modal.querySelector('[data-dialog-focus]') || dialogFocusables(modal)[0] || modal;
+    if (target && target.focus) { try { target.focus(); } catch (e) {} }
+  }
+
+  function closeDialog(modal) {
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    var back = modal.__pfOpener;
+    if (!back || !document.contains(back)) back = modal.__pfFallbackOpener;
+    modal.__pfOpener = null;
+    modal.__pfFallbackOpener = null;
+    if (back && document.contains(back) && back.focus) { try { back.focus(); } catch (e) {} }
+  }
+
+  function activeDialog() {
+    var list = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+    for (var i = list.length - 1; i >= 0; i--) {
+      if (modalIsVisible(list[i])) return list[i];
+    }
+    return null;
+  }
+
+  function dismissDialog(modal) {
+    if (!modal) return;
+    if (typeof modal.__pfDismiss === 'function') { modal.__pfDismiss(); return; }
+    var closer = modal.querySelector('[data-dialog-close],[data-modal-close],[data-close-exercise],.ios-install-x,[id$="Close"]');
+    if (closer && closer !== document.activeElement) { closer.click(); return; }
+    closeDialog(modal);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    var modal = activeDialog();
+    if (!modal) return;
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      e.preventDefault();
+      dismissDialog(modal);
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    var items = dialogFocusables(modal);
+    if (!items.length) { e.preventDefault(); if (modal.focus) modal.focus(); return; }
+    var first = items[0], last = items[items.length - 1];
+    if (!modal.contains(document.activeElement)) { e.preventDefault(); first.focus(); return; }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+
+  // Capta el disparador antes de que otros scripts muevan el foco al abrir.
+  document.addEventListener('click', function (e) {
+    var guide = $('iosInstallGuide');
+    if (!guide || guide.__pfOpener) return;
+    var trigger = e.target && e.target.closest ? e.target.closest('#iosInstallBtn,[data-dialog-open]') : null;
+    if (trigger) guide.__pfOpener = trigger;
+  }, true);
+
+  /* Diálogo único para renombrar plantillas, borrarlas y confirmar acciones
+     de respaldo (reinicio y carga de demo). */
+  var actionModalCallback = null;
+
+  function closeActionModal(value) {
+    var modal = $('actionModal');
+    var done = actionModalCallback;
+    actionModalCallback = null;
+    if (modal) {
+      modal.__pfDismiss = null;
+      closeDialog(modal);
+    }
+    if (typeof done === 'function') done(value);
+  }
+
+  function showActionModal(options) {
+    var modal = $('actionModal');
+    if (!modal) return false;
+    options = options || {};
+    var title = $('actionModalTitle');
+    var message = $('actionModalMessage');
+    var wrap = $('actionModalInputWrap');
+    var input = $('actionModalInput');
+    var inputLabel = $('actionModalInputLabel');
+    var confirmBtn = $('actionModalConfirm');
+    if (title) title.textContent = options.title || '';
+    if (message) message.textContent = options.message || '';
+    if (wrap && input) {
+      wrap.hidden = !options.input;
+      input.value = options.inputValue == null ? '' : String(options.inputValue);
+      if (inputLabel) inputLabel.textContent = options.inputLabel || '';
+      if (options.input) input.setAttribute('aria-label', options.inputLabel || options.title || '');
+      else input.removeAttribute('aria-label');
+    }
+    if (confirmBtn) {
+      confirmBtn.textContent = options.confirmLabel || t('btnDelete');
+      if (confirmBtn.classList) confirmBtn.classList.toggle('danger', !!options.destructive);
+    }
+    actionModalCallback = typeof options.onConfirm === 'function' ? options.onConfirm : null;
+    modal.__pfDismiss = function () { closeActionModal(null); };
+    openDialog(modal, options.opener, options.input ? input : confirmBtn, options.fallbackOpener);
+    return true;
+  }
+
+  if ($('actionModal')) {
+    $('actionModal').addEventListener('click', function (e) {
+      var el = e.target;
+      if (!el || !el.closest) return;
+      if (el.closest('[data-modal-close]')) { closeActionModal(null); return; }
+      if (el.closest('#actionModalConfirm')) {
+        var wrap = $('actionModalInputWrap');
+        var input = $('actionModalInput');
+        closeActionModal(wrap && !wrap.hidden && input ? input.value : true);
+      }
+    });
+    if ($('actionModalInput')) {
+      $('actionModalInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); $('actionModalConfirm').click(); }
+      });
+    }
+  }
+
+  // El reinicio de datos vive en storage.js; se intercepta para usar el
+  // diálogo accesible en lugar del window.confirm nativo.
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('#btnResetData') : null;
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    showActionModal({
+      title: t('btnResetData'),
+      message: t('resetDataConfirm'),
+      confirmLabel: t('btnResetData'),
+      destructive: true,
+      opener: btn,
+      fallbackOpener: $('btnExportBackup'),
+      onConfirm: function (ok) {
+        if (ok && Storage && Storage.resetAllData) Storage.resetAllData();
+      }
+    });
+  }, true);
+
   /* ---------- fecha de entrenamiento (hoy / días pasados) ---------- */
   function todayIso() { return Storage.todayIso ? Storage.todayIso() : iso(today()); }
 
@@ -3605,20 +3779,25 @@
     if ($('exerciseModalHistory')) { $('exerciseModalHistory').innerHTML = histHtml; $('exerciseModalHistory').hidden = false; }
   }
 
-  function openExerciseDetail(rawKey) {
+  function openExerciseDetail(rawKey, opener) {
     var key = getCanonicalExerciseKey(rawKey);
     if (!key) return;
     activeExerciseDetailKey = key;
     renderExerciseDetail();
     var modal = $('exerciseModal');
-    if (modal) modal.hidden = false;
-    if ($('btnCloseExercise')) $('btnCloseExercise').focus();
+    if (modal) {
+      modal.__pfDismiss = closeExerciseDetail;
+      openDialog(modal, opener || document.activeElement, $('btnCloseExercise'));
+    }
   }
 
   function closeExerciseDetail() {
     activeExerciseDetailKey = null;
     var modal = $('exerciseModal');
-    if (modal) modal.hidden = true;
+    if (modal) {
+      modal.__pfDismiss = null;
+      closeDialog(modal);
+    }
   }
 
   document.querySelectorAll('[data-close-exercise]').forEach(function (btn) {
@@ -3628,16 +3807,13 @@
     var link = e.target && e.target.closest ? e.target.closest('[data-ex-detail]') : null;
     if (!link) return;
     e.preventDefault();
-    openExerciseDetail(link.getAttribute('data-ex-detail'));
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && activeExerciseDetailKey) closeExerciseDetail();
+    openExerciseDetail(link.getAttribute('data-ex-detail'), link);
   });
   if ($('btnExerciseDetail')) {
-    $('btnExerciseDetail').addEventListener('click', function () {
+    $('btnExerciseDetail').addEventListener('click', function (e) {
       var key = (window.PulseFitCharts && window.PulseFitCharts.getSelectedExercise) ?
         window.PulseFitCharts.getSelectedExercise() : ($('chartExSelect') ? $('chartExSelect').value : '');
-      openExerciseDetail(key || $('chartExSelect').value);
+      openExerciseDetail(key || $('chartExSelect').value, e.currentTarget);
     });
   }
 
@@ -4332,37 +4508,59 @@
   function renameTemplate(id) {
     var tpl = findTemplate(id);
     if (!tpl) return;
-    var typed = window.prompt(t('templateNamePrompt'), tpl.name);
-    if (typed == null) return;
-    var name = String(typed).trim().slice(0, 80);
-    if (!name) { templateMessage(t('templateNameRequired'), true); return; }
-    var idx = templates.indexOf(tpl);
-    templates[idx] = Object.assign({}, tpl, { name: name });
-    persistTemplates();
-    templateMessage(t('templateRenamed').replace('{name}', name));
-    render();
+    showActionModal({
+      title: t('templateRename'),
+      message: t('templateNamePrompt'),
+      input: true,
+      inputValue: tpl.name,
+      inputLabel: t('templateName'),
+      confirmLabel: t('templateRename'),
+      opener: document.activeElement,
+      fallbackOpener: $('templateName'),
+      onConfirm: function (typed) {
+        if (typed == null) return;
+        var name = String(typed).trim().slice(0, 80);
+        if (!name) { templateMessage(t('templateNameRequired'), true); return; }
+        var idx = templates.indexOf(tpl);
+        if (idx < 0) return;
+        templates[idx] = Object.assign({}, tpl, { name: name });
+        persistTemplates();
+        templateMessage(t('templateRenamed').replace('{name}', name));
+        render();
+      }
+    });
   }
 
   function deleteTemplateById(id) {
     var tpl = findTemplate(id);
     if (!tpl) return;
-    if (!window.confirm(t('templateDeleteConfirm').replace('{name}', tpl.name))) return;
-    templates = templates.filter(function (t) { return t.id !== id; });
-    persistTemplates();
-    [weeklyPlan.weekdays, weeklyPlan.dates].forEach(function (scope) {
-      Object.keys(scope).forEach(function (k) {
-        var e = scope[k];
-        if (e && (e.templateId === id || e.weights === 'template:' + id)) delete scope[k];
-      });
+    showActionModal({
+      title: t('btnDeletePlanTemplate'),
+      message: t('templateDeleteConfirm').replace('{name}', tpl.name),
+      confirmLabel: t('btnDelete'),
+      destructive: true,
+      opener: document.activeElement,
+      fallbackOpener: $('templateName'),
+      onConfirm: function (ok) {
+        if (!ok) return;
+        templates = templates.filter(function (t) { return t.id !== id; });
+        persistTemplates();
+        [weeklyPlan.weekdays, weeklyPlan.dates].forEach(function (scope) {
+          Object.keys(scope).forEach(function (k) {
+            var e = scope[k];
+            if (e && (e.templateId === id || e.weights === 'template:' + id)) delete scope[k];
+          });
+        });
+        if (Storage.savePlan) Storage.savePlan(weeklyPlan); else save(LS_PLAN, weeklyPlan);
+        if (routineConfig.activeTemplateId === id) {
+          delete routineConfig.activeTemplateId;
+          delete routineConfig.name;
+          saveConfig();
+        }
+        templateMessage(t('templateDeleted').replace('{name}', tpl.name));
+        render();
+      }
     });
-    if (Storage.savePlan) Storage.savePlan(weeklyPlan); else save(LS_PLAN, weeklyPlan);
-    if (routineConfig.activeTemplateId === id) {
-      delete routineConfig.activeTemplateId;
-      delete routineConfig.name;
-      saveConfig();
-    }
-    templateMessage(t('templateDeleted').replace('{name}', tpl.name));
-    render();
   }
 
   function applyTemplateToCurrent(id) {
@@ -4470,15 +4668,22 @@
 
   function loadDemoData() {
     var tFn = window.PulseFit && window.PulseFit.t ? window.PulseFit.t : t;
-    if (!window.confirm(tFn('demoConfirm') || tFn('resetDataConfirm'))) return;
-    if (Storage.resetAllData) Storage.resetAllData();
-    else {
-      Object.keys(Storage.KEYS || {}).forEach(function (k) {
-        try { localStorage.removeItem(Storage.KEYS[k]); } catch (e) {}
-      });
-    }
+    showActionModal({
+      title: tFn('hBackup'),
+      message: tFn('demoConfirm') || tFn('resetDataConfirm'),
+      confirmLabel: tFn('btnLoadDemo'),
+      opener: document.activeElement,
+      fallbackOpener: $('btnLoadDemo') || $('btnDemoMode'),
+      onConfirm: function (ok) {
+        if (!ok) return;
+        if (Storage.resetAllData) Storage.resetAllData();
+        else {
+          Object.keys(Storage.KEYS || {}).forEach(function (k) {
+            try { localStorage.removeItem(Storage.KEYS[k]); } catch (e) {}
+          });
+        }
 
-    var base = today();
+        var base = today();
     days = {};
     lifts = {};
     var demoActivities = [
@@ -4573,6 +4778,8 @@
     if (Storage.savePlan) Storage.savePlan(weeklyPlan); else save(LS_PLAN, weeklyPlan);
     render();
     say('backupMsg', t('demoLoaded'));
+      }
+    });
   }
 
   if ($('btnDemoMode')) $('btnDemoMode').addEventListener('click', loadDemoData);

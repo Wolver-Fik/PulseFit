@@ -26,6 +26,30 @@
   var dbPromise = null, idbReady = false, idbFailed = false;
   var initPromise = null, writeChain = Promise.resolve(), templateChain = Promise.resolve(), memoryBackup = null;
 
+  /* IndexedDB es la única fuente de verdad. `memoryDump` es la copia en memoria
+     del estado persistido para que la API síncrona (load/save) no lea nunca
+     localStorage como si fuera la fuente autoritativa. */
+  var memoryDump = null;
+  var STORAGE_ERROR_MESSAGE = 'Error al guardar los datos en este dispositivo. Exporta un respaldo JSON por seguridad.';
+  var storageErrorHandler = null, lastStorageError = null, storageErrorActive = false;
+
+  function emitStorageError(err, origin) {
+    if (storageErrorActive) return;
+    storageErrorActive = true;
+    lastStorageError = { message: STORAGE_ERROR_MESSAGE, error: err || null, origin: origin || '' };
+    try { if (typeof storageErrorHandler === 'function') storageErrorHandler(lastStorageError); } catch (e) {}
+    try {
+      window.dispatchEvent(new CustomEvent('onStorageError', { detail: lastStorageError }));
+    } catch (e) {
+      try {
+        var ev = document.createEvent('CustomEvent');
+        ev.initCustomEvent('onStorageError', false, false, lastStorageError);
+        window.dispatchEvent(ev);
+      } catch (e2) {}
+    }
+  }
+  function clearStorageError() { storageErrorActive = false; lastStorageError = null; }
+
   function idbOpen() {
     if (dbPromise) return dbPromise;
     dbPromise = new Promise(function (resolve, reject) {
@@ -66,10 +90,34 @@
   function idbDelete(store, key) {
     return idbOpen().then(function (db) { return idbRequest(db, store, 'readwrite', function (os) { return os.delete(key); }) });
   }
+  var LIGHT_KEYS = [LS_LANG, LS_MEASURE_UNIT];
+  var HEAVY_KEYS = [LS_DAYS, LS_LIFTS, LS_CONFIG, LS_CARDIO_CONFIG, LS_PLAN, LS_MEASURES, LS_TEMPLATES];
+
   function dumpLocal() {
     var dump = {};
     try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); dump[k] = localStorage.getItem(k); } } catch (e) {}
     return dump;
+  }
+  /* Solo preferencias ligeras: nunca se intenta escribir el estado en
+     localStorage (puede no haber cuota, pero IndexedDB sí). */
+  function lightDump() {
+    var out = {};
+    try { LIGHT_KEYS.forEach(function (k) { var v = localStorage.getItem(k); if (v !== null) out[k] = v; }); } catch (e) {}
+    return out;
+  }
+  function syncPreferencesToMemory() {
+    var p = lightDump();
+    if (!memoryDump) memoryDump = {};
+    Object.keys(p).forEach(function (k) { memoryDump[k] = p[k]; });
+  }
+  function savePreferences() {
+    try {
+      var p = lightDump();
+      Object.keys(p).forEach(function (k) { localStorage.setItem(k, p[k]); });
+    } catch (e) { /* Preferencia ligera: no es un fallo de persistencia. */ }
+  }
+  function pruneLocalState() {
+    try { HEAVY_KEYS.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
   }
   function applyDump(dump) {
     Object.keys(dump || {}).forEach(function (k) {
@@ -77,27 +125,38 @@
     });
   }
   function writeIDB(dump) {
-    writeChain = writeChain.then(function () {
+    var attempt = writeChain.then(function () {
       return idbPut(STORE_STATE, STATE_KEY, {
         schemaVersion: SCHEMA_VERSION, app: 'pulsefit', localStorage: dump,
         updatedAt: new Date().toISOString()
       });
-    }).catch(function () { idbFailed = true; });
-    return writeChain;
+    });
+    writeChain = attempt.catch(function () {});
+    return attempt.then(function () {
+      clearStorageError();
+    }, function (e) {
+      idbFailed = true;
+      emitStorageError(e, 'IndexedDB');
+    });
   }
   function initIDB() {
     if (initPromise) return initPromise;
     initPromise = idbOpen().then(function () { return idbGet(STORE_STATE, STATE_KEY); })
       .then(function (rec) {
-        var local = dumpLocal();
-        if (!rec) { writeIDB(local); return; }
-        var remote = (rec.localStorage && typeof rec.localStorage === 'object') ? rec.localStorage : {};
-        var merged = {}, k;
-        for (k in remote) if (Object.prototype.hasOwnProperty.call(remote, k)) merged[k] = remote[k];
-        for (k in local) if (Object.prototype.hasOwnProperty.call(local, k)) merged[k] = local[k];
-        applyDump(merged);
-        writeIDB(merged);
-      }).catch(function () { idbFailed = true; });
+        if (!rec) {
+          /* Migración única: lo que hubiera en localStorage pasa a IndexedDB
+             y después se liberan las claves pesadas. */
+          memoryDump = dumpLocal();
+          syncPreferencesToMemory();
+          return writeIDB(memoryDump).then(function () { pruneLocalState(); });
+        }
+        memoryDump = (rec.localStorage && typeof rec.localStorage === 'object') ? rec.localStorage : {};
+        syncPreferencesToMemory();
+        pruneLocalState();
+      }).catch(function (e) {
+        idbFailed = true;
+        emitStorageError(e, 'IndexedDB (init)');
+      });
     return initPromise;
   }
   function whenReady() { return initIDB(); }
@@ -384,13 +443,19 @@
   function saveTemplates(list) {
     var clean = (Array.isArray(list) ? list : []).map(normalizeTemplate).filter(Boolean);
     save(LS_TEMPLATES, clean);
-    templateChain = templateChain.then(function () { return idbOpen(); }).then(function (db) {
+    var attempt = templateChain.then(function () { return idbOpen(); }).then(function (db) {
       return idbRequest(db, STORE_TEMPLATES, 'readwrite', function (os) {
         os.clear();
         clean.forEach(function (tpl) { os.put(tpl); });
       });
-    }).catch(function () { idbFailed = true; });
-    return templateChain;
+    });
+    templateChain = attempt.catch(function () {});
+    return attempt.then(function () {
+      clearStorageError();
+    }, function (e) {
+      idbFailed = true;
+      emitStorageError(e, 'IndexedDB (plantillas)');
+    });
   }
 
   function loadTemplatesFromIDB() {
@@ -400,10 +465,16 @@
   }
 
   function clearTemplatesIDB() {
-    templateChain = templateChain.then(function () { return idbOpen(); }).then(function (db) {
+    var attempt = templateChain.then(function () { return idbOpen(); }).then(function (db) {
       return idbRequest(db, STORE_TEMPLATES, 'readwrite', function (os) { os.clear(); });
-    }).catch(function () { idbFailed = true; });
-    return templateChain;
+    });
+    templateChain = attempt.catch(function () {});
+    return attempt.then(function () {
+      clearStorageError();
+    }, function (e) {
+      idbFailed = true;
+      emitStorageError(e, 'IndexedDB (plantillas)');
+    });
   }
 
   // Reinicio explícito: se van también las claves nuevas (plan, medidas, unidad y plantillas).
@@ -411,6 +482,7 @@
     [LS_DAYS, LS_LIFTS, LS_CONFIG, LS_CARDIO_CONFIG, LS_PLAN, LS_MEASURES, LS_MEASURE_UNIT, LS_TEMPLATES].forEach(function (k) {
       try { localStorage.removeItem(k); } catch (e) {}
     });
+    if (memoryDump) HEAVY_KEYS.forEach(function (k) { delete memoryDump[k]; });
     clearTemplatesIDB();
     var pf = window.PulseFit || {};
     if (pf.setDays) pf.setDays({});
@@ -420,28 +492,35 @@
     if (pf.setMeasureUnit) pf.setMeasureUnit('kg');
     if (pf.setTemplates) pf.setTemplates([]);
     if (pf.render) pf.render();
-    writeIDB(dumpLocal());
+    writeIDB(memoryDump || dumpLocal());
     var sayFn = pf.say || function () {};
     var tFn = pf.t || function (k) { return k; };
     sayFn('backupMsg', tFn('resetDataDone'));
   }
 
   function load(key) {
+    initIDB();
     try {
-      var g = JSON.parse(localStorage.getItem(key) || 'null');
-      initIDB();
+      /* Lee la copia en memoria alimentada desde IndexedDB; solo antes de
+         que termine la migración se consulta localStorage. */
+      var raw = (memoryDump && Object.prototype.hasOwnProperty.call(memoryDump, key)) ?
+        memoryDump[key] : localStorage.getItem(key);
+      var g = JSON.parse(raw || 'null');
       return g && typeof g === 'object' ? g : {};
     } catch (e) {
-      initIDB();
       return {};
     }
   }
 
   function save(key, obj) {
-    try {
-      localStorage.setItem(key, JSON.stringify(obj));
-    } catch (e) {}
-    writeIDB(dumpLocal());
+    initIDB();
+    if (!memoryDump) memoryDump = dumpLocal();
+    memoryDump[key] = JSON.stringify(obj);
+    /* Escritura principal: IndexedDB recibe el estado directamente, sin
+       depender de que localStorage tenga espacio libre. */
+    writeIDB(memoryDump);
+    savePreferences();
+    return !lastStorageError && !idbFailed;
   }
 
   function loadDays() {
@@ -462,7 +541,7 @@
 
   function loadConfig(targetConfig, validGoals, validSplits) {
     try {
-      var g = JSON.parse(localStorage.getItem(LS_CONFIG));
+      var g = load(LS_CONFIG);
       if (g && typeof g === 'object') {
         if (g.goal && (!validGoals || validGoals[g.goal])) targetConfig.goal = g.goal;
         if (g.split && (!validSplits || validSplits[g.split])) targetConfig.split = g.split;
@@ -482,7 +561,7 @@
 
   function loadCardioConfig(targetCardioConfig, validGoals) {
     try {
-      var g = JSON.parse(localStorage.getItem(LS_CARDIO_CONFIG));
+      var g = load(LS_CARDIO_CONFIG);
       if (g && typeof g === 'object') {
         if (g.goal && (!validGoals || validGoals[g.goal])) targetCardioConfig.goal = g.goal;
         if (Array.isArray(g.equipment) && g.equipment.length) targetCardioConfig.equipment = g.equipment;
@@ -618,12 +697,11 @@
     return { ok: true, version: sv };
   }
   function restoreLocal(dump) {
-    try {
-      var keys = [];
-      for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-      keys.forEach(function (k) { if (!Object.prototype.hasOwnProperty.call(dump, k)) localStorage.removeItem(k); });
-      applyDump(dump);
-    } catch (e) {}
+    /* Restaura la fuente en memoria y la refleja en IndexedDB; nunca revive
+       claves pesadas en localStorage. */
+    memoryDump = JSON.parse(JSON.stringify(dump || {}));
+    syncPreferencesToMemory();
+    writeIDB(memoryDump);
   }
 
   function handleImportFile(file) {
@@ -634,7 +712,7 @@
       var sayFn = (window.PulseFit && window.PulseFit.say) || function () {};
       /* Copia de seguridad en memoria (localStorage + estado vivo) antes de
          sobrescribir nada: los setters de app.js mutan referencias compartidas. */
-      memoryBackup = dumpLocal();
+      memoryBackup = JSON.parse(JSON.stringify(memoryDump || dumpLocal()));
       var memState = null;
       try {
         memState = (window.PulseFit && window.PulseFit.getState) ?
@@ -647,14 +725,13 @@
         if (!check.ok) throw new Error(check.msgText);
 
         if (parsed.localStorage && typeof parsed.localStorage === 'object') {
+          if (!memoryDump) memoryDump = dumpLocal();
           Object.keys(parsed.localStorage).forEach(function (k) {
             var val = parsed.localStorage[k];
-            if (typeof val === 'object') {
-              localStorage.setItem(k, JSON.stringify(val));
-            } else if (val != null) {
-              localStorage.setItem(k, String(val));
-            }
+            if (val === null || val === undefined) delete memoryDump[k];
+            else memoryDump[k] = (typeof val === 'object') ? JSON.stringify(val) : String(val);
           });
+          writeIDB(memoryDump);
         }
 
         var newDays = parsed.days || parsed.cf_days || (parsed.localStorage && (parsed.localStorage.cf_days || parsed.localStorage.days));
@@ -698,7 +775,7 @@
           save(LS_PLAN, normalizedPlan);
           if (window.PulseFit && window.PulseFit.setPlan) window.PulseFit.setPlan(normalizedPlan);
         } else {
-          try { localStorage.removeItem(LS_PLAN); } catch (e) {}
+          if (memoryDump) delete memoryDump[LS_PLAN];
           if (window.PulseFit && window.PulseFit.setPlan) window.PulseFit.setPlan(defaultPlan());
         }
 
@@ -708,7 +785,7 @@
           save(LS_MEASURES, newMeasures);
           if (window.PulseFit && window.PulseFit.setMeasures) window.PulseFit.setMeasures(newMeasures);
         } else {
-          try { localStorage.removeItem(LS_MEASURES); } catch (e) {}
+          if (memoryDump) delete memoryDump[LS_MEASURES];
           if (window.PulseFit && window.PulseFit.setMeasures) window.PulseFit.setMeasures({});
         }
 
@@ -716,6 +793,7 @@
           (parsed.localStorage && parsed.localStorage.pulsefit_measure_unit);
         if (newMeasureUnit === 'kg' || newMeasureUnit === 'lb') {
           try { localStorage.setItem(LS_MEASURE_UNIT, newMeasureUnit); } catch (e) {}
+          syncPreferencesToMemory();
           if (window.PulseFit && window.PulseFit.setMeasureUnit) window.PulseFit.setMeasureUnit(newMeasureUnit);
         }
 
@@ -762,10 +840,11 @@
           if (pf.setTemplates) pf.setTemplates(memState.templates || []);
           saveTemplates(memState.templates || []);
           try { localStorage.setItem(LS_MEASURE_UNIT, memState.measureUnit || 'kg'); } catch (e) {}
+          syncPreferencesToMemory();
           if (pf.applyLang && memState.curLang) pf.applyLang(memState.curLang);
           else if (pf.render) pf.render();
         }
-        writeIDB(dumpLocal());
+        writeIDB(memoryDump || dumpLocal());
         sayFn('backupMsg', (err && err.message && err.message.indexOf('respaldo') >= 0) ? err.message : tFn('backupImportError'), true);
       } finally {
         var inp = document.getElementById('importInput');
@@ -868,6 +947,12 @@
     SCHEMA_VERSION: SCHEMA_VERSION,
     whenReady: whenReady,
     isIndexedDBReady: function () { return idbReady && !idbFailed; },
+    /* Fallo real de persistencia: callback y evento `onStorageError`. */
+    STORAGE_ERROR_MESSAGE: STORAGE_ERROR_MESSAGE,
+    get onStorageError() { return storageErrorHandler; },
+    set onStorageError(fn) { storageErrorHandler = typeof fn === 'function' ? fn : null; },
+    lastStorageError: function () { return lastStorageError; },
+    isStorageHealthy: function () { return !lastStorageError && !idbFailed; },
     putFile: putFile,
     getFile: getFile,
     listFiles: listFiles,

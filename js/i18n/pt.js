@@ -1,5 +1,12 @@
 window.PULSEFIT_I18N = window.PULSEFIT_I18N || {};
 window.PULSEFIT_I18N.pt = {
+  'install.button': 'Instalar app',
+  'install.guideTitle': 'Instalar no iPhone ou iPad',
+  'install.step1': 'Toque no ícone Compartilhar na barra do Safari',
+  'install.step2': 'Escolha «Adicionar à Tela de Início»',
+  'install.close': 'Fechar',
+  'install.buttonAria': 'Instalar app neste dispositivo',
+  'install.closeAria': 'Fechar guia de instalação',
   appSub: 'Seu acompanhamento de cardio, alimentação e musculação.',
   tabCardio: 'Cardio',
   tabWalking: 'Cardio',

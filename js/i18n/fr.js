@@ -1,5 +1,12 @@
 window.PULSEFIT_I18N = window.PULSEFIT_I18N || {};
 window.PULSEFIT_I18N.fr = {
+  'install.button': 'Installer l’app',
+  'install.guideTitle': 'Installer sur iPhone ou iPad',
+  'install.step1': 'Touchez l’icône Partager dans la barre de Safari',
+  'install.step2': 'Choisissez « Sur l’écran d’accueil »',
+  'install.close': 'Fermer',
+  'install.buttonAria': 'Installer l’app sur cet appareil',
+  'install.closeAria': 'Fermer le guide d’installation',
   appSub: 'Votre suivi personnel de cardio, repas et musculation.',
   tabCardio: 'Cardio',
   tabWalking: 'Cardio',

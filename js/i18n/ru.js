@@ -1,5 +1,12 @@
 window.PULSEFIT_I18N = window.PULSEFIT_I18N || {};
 window.PULSEFIT_I18N.ru = {
+  'install.button': 'Установить приложение',
+  'install.guideTitle': 'Установка на iPhone или iPad',
+  'install.step1': 'Нажмите значок «Поделиться» на панели Safari',
+  'install.step2': 'Выберите «На главный экран»',
+  'install.close': 'Закрыть',
+  'install.buttonAria': 'Установить приложение на этом устройстве',
+  'install.closeAria': 'Закрыть руководство по установке',
   appSub: 'Ваш личный трекер кардио, питания и силовых тренировок.',
   tabCardio: 'Кардио',
   tabWalking: 'Кардио',

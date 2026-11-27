@@ -1,5 +1,12 @@
 window.PULSEFIT_I18N = window.PULSEFIT_I18N || {};
 window.PULSEFIT_I18N.ja = {
+  'install.button': 'アプリをインストール',
+  'install.guideTitle': 'iPhone または iPad にインストール',
+  'install.step1': 'Safari のツールバーで「共有」アイコンをタップ',
+  'install.step2': '「ホーム画面に追加」を選択',
+  'install.close': '閉じる',
+  'install.buttonAria': 'このデバイスにアプリをインストール',
+  'install.closeAria': 'インストールガイドを閉じる',
   appSub: '有酸素運動、食事、筋トレを記録するパーソナルトラッカー。',
   tabCardio: '有酸素',
   tabWalking: '有酸素',

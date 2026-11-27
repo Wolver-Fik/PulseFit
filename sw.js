@@ -2,7 +2,7 @@
 // Si cambiÃ¡s algÃºn archivo, subÃ­ la versiÃ³n nueva y cambiÃ¡ el nÃºmero de CACHE para que se actualice.
 /* Etapa 1: sube la version con cada cambio. activate solo purga CacheStorage:
    nunca elimina IndexedDB (pulsefit_db) ni localStorage. */
-var CACHE = 'pulsefit-v28';
+var CACHE = 'pulsefit-v29';
 var SHELL = [
   './',
   './index.html',
@@ -22,6 +22,7 @@ var SHELL = [
   './js/i18n/ja.js',
   './js/storage.js',
   './js/charts.js',
+  './js/ios-install.js',
   './js/app.js'
 ];
 

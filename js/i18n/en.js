@@ -1,5 +1,12 @@
 window.PULSEFIT_I18N = window.PULSEFIT_I18N || {};
 window.PULSEFIT_I18N.en = {
+  'install.button': 'Install app',
+  'install.guideTitle': 'Install on iPhone or iPad',
+  'install.step1': 'Tap the Share icon in Safari’s toolbar',
+  'install.step2': 'Choose “Add to Home Screen”',
+  'install.close': 'Close',
+  'install.buttonAria': 'Install app on this device',
+  'install.closeAria': 'Close installation guide',
   appSub: 'Your personal tracker for cardio, nutrition, and lifting.',
   tabCardio: 'Cardio',
   tabWalking: 'Cardio',
